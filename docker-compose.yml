@@ -1,0 +1,14 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+    image: clinic-chain-dev:local
+    volumes:
+      - .:/workspace
+      - uv-cache:/root/.cache/uv
+      - venv:/opt/venv
+
+volumes:
+  uv-cache:
+  venv:
