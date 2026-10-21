@@ -16,5 +16,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Session discipline follows `cherny-workflow`: plan first for anything non-trivial, track it in
   `tasks/todo.md`, read `tasks/lessons.md` at session start.
 
-Build, test and deploy commands are added here once `plan.md` fixes the toolchain (a `Makefile`
-that CI also runs is required by the repository standard).
+## Commands
+
+Every `make` target runs inside the dev container (`docker/dev.Dockerfile`: Python 3.13, JDK 17,
+uv, gitleaks, actionlint), locally and in CI, so a local green and a CI green are the same claim.
+Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
+
+- `make setup` — build the image, `uv sync --frozen`
+- `make lint` / `make test` / `make secrets`
+- one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
+- after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`
