@@ -1,0 +1,29 @@
+[project]
+name = "clinic-chain"
+version = "0.1.0"
+description = "Clinic chain analytics and real-time bed monitoring on Microsoft Fabric"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.17.1",
+    "sqlfluff==4.4.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# Vendored from the AI Factory kit; kept byte-identical to upstream.
+extend-exclude = [".claude", ".agents"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
