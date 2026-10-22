@@ -61,8 +61,11 @@ Verification of the claim: not applicable for every unit (new work); each cites 
 - **Blocked by:** U01.
 - **Scope:** Synthea in Docker with a fixed seed; three clinics mapped to three cities; FHIR R4
   bundles written to `data/raw/fhir/` (git-ignored).
-- **Completion:** `make synth` is deterministic (same seed → identical file hashes) and a test asserts
-  300, 400 and 500 patients per clinic over a 2-year window.
+- **Completion:** `make synth` is deterministic (same seed → identical file hashes, `metadata/`
+  excluded) and a test asserts 300, 400 and 500 patients per clinic, no encounter after 2026-09-30,
+  and encounters inside the window 2024-10-01 … 2026-09-30 for every clinic. Synthea keeps older
+  history linked to active conditions; the window is applied downstream (PLAN-U02, option 3a,
+  approved 2026-10-22).
 - **Routing:** agent.
 
 ### U03 Source derivation and noise
