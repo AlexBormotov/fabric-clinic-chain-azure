@@ -4,6 +4,8 @@ ai-factory-kit/
 GRILL.md
 
 .claude/settings.local.json
+# Generated data and downloaded tools; reproducible with `make synth`
+data/
 .env
 .venv/
 __pycache__/

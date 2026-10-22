@@ -3,7 +3,9 @@ name = "clinic-chain"
 version = "0.1.0"
 description = "Clinic chain analytics and real-time bed monitoring on Microsoft Fabric"
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "pyyaml==6.0.3",
+]
 
 [dependency-groups]
 dev = [
@@ -16,8 +18,10 @@ dev = [
 package = false
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "scripts"]
 testpaths = ["tests"]
+addopts = "-m 'not slow'"
+markers = ["slow: runs Synthea; minutes long (make test-slow)"]
 
 [tool.ruff]
 line-length = 100
