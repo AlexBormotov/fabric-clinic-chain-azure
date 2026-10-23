@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Clinic chain analytics and real-time bed monitoring on Microsoft Fabric"
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "openpyxl==3.1.5",
     "pyyaml==6.0.3",
 ]
 

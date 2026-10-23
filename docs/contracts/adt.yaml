@@ -1,0 +1,42 @@
+system: adt
+tables:
+  patients:
+    file: adt/patients.csv
+    primary_key: [adt_patient_id]
+    columns:
+      - {name: adt_patient_id, type: string}
+      - {name: clinic_id, type: string}
+      - {name: given_name, type: string}
+      - {name: family_name, type: string}
+      - {name: birth_date, type: date}
+      - {name: sex, type: string}
+      - {name: phone, type: string, nullable: true}
+      - {name: postal_code, type: string, nullable: true}
+  events:
+    # A01 admit, A02 transfer (from_* set), A03 discharge. Stays open on 2026-09-30 have no A03.
+    file: adt/events.csv
+    primary_key: [event_id]
+    columns:
+      - {name: event_id, type: int}
+      - {name: event_type, type: string}
+      - {name: event_time, type: datetime}
+      - {name: clinic_id, type: string}
+      - {name: stay_id, type: string}
+      - {name: adt_patient_id, type: string}
+      - {name: ward_id, type: string}
+      - {name: bed_id, type: string}
+      - {name: from_ward_id, type: string, nullable: true}
+      - {name: from_bed_id, type: string, nullable: true}
+  ed_visits:
+    file: adt/ed_visits.csv
+    primary_key: [ed_visit_id]
+    columns:
+      - {name: ed_visit_id, type: string}
+      - {name: clinic_id, type: string}
+      - {name: adt_patient_id, type: string}
+      - {name: arrival_at, type: datetime}
+      - {name: triage_at, type: datetime}
+      - {name: provider_seen_at, type: datetime}
+      - {name: departure_at, type: datetime}
+      - {name: disposition, type: string}
+      - {name: stay_id, type: string, nullable: true}

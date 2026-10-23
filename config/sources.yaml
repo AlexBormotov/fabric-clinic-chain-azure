@@ -1,0 +1,52 @@
+# Source derivation (U03, PLAN-U03 approach B). Input: Synthea FHIR from config/synthea.yaml.
+seed: 20261023
+window:
+  start: "2024-10-01"
+  end: "2026-09-30"
+
+# Exact shares of patient records per system (billing, lab, adt), applied as round(rate * n).
+noise:
+  name_typo: 0.04
+  dob_day_month_swap: 0.02
+  phone_format: 0.25
+  duplicate: 0.05
+
+# Ward sizes; median LOS (days) drives referred stays. Synthea stays are placed first.
+wards:
+  ICU: {name: Intensive care, los_median_days: 3.0, day_rate_usd: 4200}
+  MED: {name: Medical, los_median_days: 4.0, day_rate_usd: 2100}
+  SUR: {name: Surgical, los_median_days: 3.0, day_rate_usd: 2600}
+clinics:
+  boston: {name: Boston Clinic, beds: {ICU: 2, MED: 6, SUR: 4}}
+  worcester: {name: Worcester Clinic, beds: {ICU: 2, MED: 8, SUR: 6}}
+  springfield: {name: Springfield Clinic, beds: {ICU: 4, MED: 10, SUR: 6}}
+
+referred:
+  # Arrival rate per ward-day = target * beds / mean LOS * season; season peaks mid-January.
+  occupancy_target: 0.80
+  winter_amplitude: 0.15
+  icu_to_med_transfer: 0.30
+  readmission_30d: 0.10
+  via_ed: 0.40
+
+ed:
+  # Minutes after arrival; lognormal with the given median, capped.
+  triage_median_min: 8
+  triage_cap_min: 60
+  provider_median_min: 35
+  provider_cap_min: 360
+  stay_after_provider_median_min: 90
+  # Walk-ins who go home are added until admissions are this share of ED visits.
+  admitted_share: 0.22
+  visit_charge_usd: 1150
+
+billing:
+  # Denials as exact shares per payer; anything unlisted uses `default`.
+  denial_rate: {Medicare: 0.05, Medicaid: 0.09, Dual Eligible: 0.07, NO_INSURANCE: 0.0, default: 0.08}
+  denial_reasons: ["CO-16 missing information", "CO-50 not medically necessary",
+                   "CO-197 no precertification", "CO-29 timely filing"]
+  # Paid share of billed amount for referred and walk-in claims (Synthea claims keep their EOB payment).
+  paid_ratio: {Medicare: 0.62, Medicaid: 0.55, Dual Eligible: 0.58, NO_INSURANCE: 0.15, default: 0.72}
+
+rosters:
+  nurses_per_bed: 1.3

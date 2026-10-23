@@ -1,0 +1,26 @@
+system: lab
+tables:
+  patients:
+    file: lab/patients.csv
+    primary_key: [lab_patient_id]
+    columns:
+      - {name: lab_patient_id, type: string}
+      - {name: clinic_id, type: string}
+      - {name: given_name, type: string}
+      - {name: family_name, type: string}
+      - {name: birth_date, type: date}
+      - {name: sex, type: string}
+      - {name: phone, type: string, nullable: true}
+  results:
+    file: lab/results.csv
+    primary_key: [result_id]
+    columns:
+      - {name: result_id, type: string}
+      - {name: lab_patient_id, type: string}
+      - {name: clinic_id, type: string}
+      - {name: collected_at, type: datetime}
+      - {name: loinc_code, type: string}
+      - {name: test_name, type: string}
+      - {name: value_numeric, type: decimal, nullable: true}
+      - {name: value_text, type: string, nullable: true}
+      - {name: unit, type: string, nullable: true}

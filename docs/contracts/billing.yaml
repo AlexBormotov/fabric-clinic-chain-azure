@@ -1,0 +1,38 @@
+system: billing
+tables:
+  patient_account:
+    file: billing/patient_account.csv
+    primary_key: [account_id]
+    columns:
+      - {name: account_id, type: string}
+      - {name: clinic_id, type: string}
+      - {name: given_name, type: string}
+      - {name: family_name, type: string}
+      - {name: birth_date, type: date}
+      - {name: sex, type: string}
+      - {name: phone, type: string, nullable: true}
+      - {name: postal_code, type: string, nullable: true}
+  claim:
+    file: billing/claim.csv
+    primary_key: [claim_id]
+    columns:
+      - {name: claim_id, type: string}
+      - {name: account_id, type: string}
+      - {name: clinic_id, type: string}
+      - {name: claim_type, type: string}
+      - {name: payer, type: string}
+      - {name: service_start, type: datetime}
+      - {name: service_end, type: datetime}
+      - {name: billed_amount, type: decimal}
+      - {name: paid_amount, type: decimal}
+      - {name: status, type: string}
+      - {name: denial_reason, type: string, nullable: true}
+  claim_line:
+    file: billing/claim_line.csv
+    primary_key: [claim_id, line_no]
+    columns:
+      - {name: claim_id, type: string}
+      - {name: line_no, type: int}
+      - {name: service_code, type: string}
+      - {name: service_name, type: string}
+      - {name: amount, type: decimal}

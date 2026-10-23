@@ -1,0 +1,24 @@
+system: ground_truth
+tables:
+  persons:
+    # origin: synthea (registered; person_id = FHIR Patient.id); referred (inpatients) and walk_in
+    # (ED, sent home) exist only in ADT and billing
+    file: ground_truth/persons.csv
+    primary_key: [person_id]
+    columns:
+      - {name: person_id, type: string}
+      - {name: origin, type: string}
+      - {name: clinic_id, type: string}
+      - {name: given_name, type: string}
+      - {name: family_name, type: string}
+      - {name: birth_date, type: date}
+      - {name: sex, type: string}
+      - {name: phone, type: string, nullable: true}
+      - {name: postal_code, type: string, nullable: true}
+  patient_links:
+    file: ground_truth/patient_links.csv
+    primary_key: [system, local_patient_id]
+    columns:
+      - {name: system, type: string}
+      - {name: local_patient_id, type: string}
+      - {name: person_id, type: string}

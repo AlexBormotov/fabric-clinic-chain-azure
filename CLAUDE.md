@@ -25,6 +25,8 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make setup` — build the image, `uv sync --frozen`
 - `make lint` / `make test` / `make secrets`
 - `make synth` — Synthea population into `data/raw/fhir/` (~4 min); `make test-slow` — Synthea
-  tests (`slow` marker, excluded from `make test`, ~4 min)
+  tests (`slow` marker, excluded from `make test`, ~10 min)
+- `make sources` — derive billing, lab, ADT, SharePoint and ground truth from `data/raw/fhir/` into
+  `data/sources/`; schemas in `docs/contracts/`
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`
