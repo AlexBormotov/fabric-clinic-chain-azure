@@ -30,6 +30,16 @@ jobs:
       - run: make setup
       - run: make test-slow
 
+  stand:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make setup
+      - run: make synth
+      - run: make sources
+      - run: make up
+      - run: make test-stand
+
   secrets:
     runs-on: ubuntu-latest
     steps:

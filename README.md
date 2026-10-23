@@ -20,6 +20,8 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make test-slow` | Synthea and source-derivation tests on the full population (~10 min) |
 | `make synth` | generate the synthetic population into `data/raw/fhir/` (~4 min, ~880 MB) |
 | `make sources` | derive the source systems from the FHIR output into `data/sources/` (~1.5 min) |
+| `make up` / `make down` | start and load the local source stand / stop it (~1 min) |
+| `make test-stand` | read the stand back and compare it with `data/sources/` |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -61,3 +63,15 @@ Their arrivals are calibrated per ward to a mean occupancy of 80% with winter pe
 Each system has its own patient IDs and deliberate noise: 4% name typos, 2% day/month swaps in the
 birth date, 25% non-canonical phone formats and 5% duplicate patient records, applied as exact
 counts.
+
+## Local source stand
+
+`make up` stands in for the cloud sources in docker compose and loads them:
+
+- **SQL Server 2022** (for Azure SQL): database `clinic_billing`, schema from
+  [`docs/contracts/billing.sql`](docs/contracts/billing.sql).
+- **Azurite** (for Blob Storage): containers `fhir` (`<clinic>/<patient>.json`), `lab` and `adt`.
+- **SharePoint**: the folder `data/sources/sharepoint/`.
+
+Loading is idempotent. `make test-stand` checks that every table and container holds exactly what
+`data/sources/` and `data/raw/fhir/` hold.

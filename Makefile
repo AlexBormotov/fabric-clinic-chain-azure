@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow synth sources secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources secrets up down
 
 setup:
 	docker compose build dev
@@ -25,6 +25,10 @@ test:
 test-slow:
 	$(RUN) sh -c 'uv sync --frozen --quiet && uv run pytest -m slow'
 
+# Needs `make up`: reads the stand back and compares it with data/sources/.
+test-stand:
+	$(RUN) sh -c 'uv sync --frozen --quiet && uv run pytest -m stand'
+
 synth:
 	$(RUN) sh -c 'uv sync --frozen --quiet && uv run python scripts/synth.py'
 
@@ -34,8 +38,13 @@ sources:
 secrets:
 	$(RUN) gitleaks git --redact --verbose .
 
-up:
-	docker compose up -d
+# The SA password is generated once into the git-ignored .env, which compose reads.
+.env:
+	printf 'MSSQL_SA_PASSWORD=Sa1-%s\n' "$$(head -c 18 /dev/urandom | base64 | tr -d '+/=')" > .env
+
+up: .env
+	docker compose up -d --wait sqlserver azurite
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/load_stand.py'
 
 down:
 	docker compose down

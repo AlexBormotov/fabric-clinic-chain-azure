@@ -4,10 +4,36 @@ services:
       context: .
       dockerfile: docker/dev.Dockerfile
     image: clinic-chain-dev:local
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD-}
     volumes:
       - .:/workspace
       - uv-cache:/root/.cache/uv
       - venv:/opt/venv
+
+  # Local source stand (`make up`): billing source on SQL Server, raw files on the Blob emulator.
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD-}
+    mem_limit: 2g
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    command: azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --loose
+    healthcheck:
+      test: nc -z 127.0.0.1 10000
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
 volumes:
   uv-cache:
