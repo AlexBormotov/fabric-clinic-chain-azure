@@ -5,8 +5,10 @@ FROM python:3.13-slim-bookworm
 ARG GITLEAKS_VERSION=8.30.1
 ARG ACTIONLINT_VERSION=1.7.12
 
+# libltdl7 and the Kerberos libraries are what mssql-python's bundled ODBC driver loads on Linux.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openjdk-17-jre-headless git make curl ca-certificates \
+        libltdl7 libkrb5-3 libgssapi-krb5-2 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \

@@ -28,5 +28,8 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
   tests (`slow` marker, excluded from `make test`, ~10 min)
 - `make sources` — derive billing, lab, ADT, SharePoint and ground truth from `data/raw/fhir/` into
   `data/sources/`; schemas in `docs/contracts/`
+- `make up` — start the local source stand (SQL Server 2022, Azurite) and load `data/sources/` and
+  `data/raw/fhir/` into it; the SA password is generated into the git-ignored `.env`;
+  `make test-stand` — read-back tests (`stand` marker, excluded from `make test`); `make down`
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`

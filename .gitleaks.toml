@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+# Azurite's well-known development account key, published by Microsoft:
+# https://learn.microsoft.com/azure/storage/common/storage-use-azurite#well-known-storage-account-and-key
+[[allowlists]]
+description = "Azurite development account key (public)"
+regexTarget = "line"
+regexes = ['''AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''']

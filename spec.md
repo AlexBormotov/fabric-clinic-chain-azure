@@ -85,8 +85,11 @@ Verification of the claim: not applicable for every unit (new work); each cites 
 - **Serves:** AC2, AC13.
 - **Blocked by:** U03.
 - **Scope:** docker compose services: SQL Server 2022 (billing source, loaded from U03), Azurite
-  (Blob emulator holding `fhir/` and `lab/`), a folder standing in for SharePoint.
-- **Completion:** `make up && make test` reads back source row counts equal to U03 output.
+  (Blob emulator holding `fhir/`, `lab/` and the ADT system's export `adt/`), a folder standing in
+  for SharePoint (amended 2026-10-23, PLAN-U04).
+- **Completion:** `make up && make test-stand` reads back source row counts equal to U03 output; the
+  stand tests carry a `stand` marker and are excluded from `make test`, which must pass without
+  running services (AC13). CI job `stand` runs them (amended 2026-10-23, PLAN-U04).
 - **Routing:** agent.
 
 ### U05 Bronze
