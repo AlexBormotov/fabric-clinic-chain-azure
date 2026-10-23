@@ -4,6 +4,7 @@ ai-factory-kit/
 GRILL.md
 
 .claude/settings.local.json
+.codex/config.toml
 # Generated data and downloaded tools; reproducible with `make synth`
 data/
 .env
