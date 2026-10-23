@@ -26,7 +26,9 @@ Microsoft Fabric is the primary platform; every other tool adapts to it, not the
    billing and insurance claims in Azure SQL, lab results as CSV, and staff rosters plus bed
    reference data as Excel on SharePoint. Each source system carries its own local patient
    identifiers and realistic noise (name typos, day/month swaps, phone formats, ~5% duplicates); the
-   generator keeps the ground truth.
+   generator keeps the ground truth. The 300/400/500 are the registered (EHR) patients; the wards
+   also take referred inpatients who exist only in the bed (ADT) and billing systems, sized so that
+   occupancy behaves like a real hospital (amended 2026-10-23, PLAN-U03 approach B).
 2. **Batch path.** Data Pipelines (Azure SQL, Blob CSV, Blob FHIR) and Dataflows Gen2 (SharePoint
    Excel) land data in OneLake; PySpark notebooks build Lakehouse Bronze and Silver; a Warehouse holds
    the Gold star schema. Row counts reconcile from source to Gold, with every difference explained.

@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow synth secrets up down
+.PHONY: setup lint test test-slow synth sources secrets up down
 
 setup:
 	docker compose build dev
@@ -27,6 +27,9 @@ test-slow:
 
 synth:
 	$(RUN) sh -c 'uv sync --frozen --quiet && uv run python scripts/synth.py'
+
+sources:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/derive_sources.py'
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .
