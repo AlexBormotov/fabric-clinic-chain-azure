@@ -38,6 +38,7 @@ jobs:
       - run: make synth
       - run: make sources
       - run: make up
+      - run: make bronze
       - run: make test-stand
 
   secrets:

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "nb_bronze",
+    "description": "Land every source of a pipeline run as Delta tables in Bronze"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "8f1c2a6e-5b0d-4c3e-9a71-0b2d6f4e1a01"
+  }
+}

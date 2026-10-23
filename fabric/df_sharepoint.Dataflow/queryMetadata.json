@@ -1,0 +1,44 @@
+{
+  "formatVersion": "202502",
+  "name": "df_sharepoint",
+  "documentLocale": "en-US",
+  "queriesMetadata": {
+    "site_url": {
+      "queryId": "44766fb6-6b7d-5b52-9c67-896b59400d9c",
+      "queryName": "site_url",
+      "isHidden": false,
+      "loadEnabled": false
+    },
+    "run_id": {
+      "queryId": "767e3c7d-f025-5479-86db-4104a70b8aa8",
+      "queryName": "run_id",
+      "isHidden": false,
+      "loadEnabled": false
+    },
+    "Sheet": {
+      "queryId": "6a5e654e-0925-52e3-9c7a-2b1678a2305f",
+      "queryName": "Sheet",
+      "isHidden": false,
+      "loadEnabled": false
+    },
+    "beds": {
+      "queryId": "620891ce-c963-500b-9ad6-7e25e1854db2",
+      "queryName": "beds",
+      "isHidden": false,
+      "loadEnabled": true
+    },
+    "staff": {
+      "queryId": "a19608ca-b769-5d4e-b4b8-081cf2902e0a",
+      "queryName": "staff",
+      "isHidden": false,
+      "loadEnabled": true
+    },
+    "roster": {
+      "queryId": "a3b9fb36-0d7c-5657-a2bd-2f9d1ab9fb01",
+      "queryName": "roster",
+      "isHidden": false,
+      "loadEnabled": true
+    }
+  },
+  "parametric": true
+}

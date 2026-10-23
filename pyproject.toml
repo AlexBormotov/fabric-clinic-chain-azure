@@ -5,8 +5,11 @@ description = "Clinic chain analytics and real-time bed monitoring on Microsoft 
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "azure-storage-blob==12.31.0",
+    "delta-spark==4.2.0",
     "mssql-python==1.16.0",
     "openpyxl==3.1.5",
+    "pyarrow==25.0.1",
+    "pyspark==4.1.1",
     "pyyaml==6.0.3",
 ]
 
@@ -37,3 +40,7 @@ extend-exclude = [".claude", ".agents"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Fabric notebooks: cells import where they start, after the parameters cell.
+"fabric/**/notebook-content.py" = ["E402"]

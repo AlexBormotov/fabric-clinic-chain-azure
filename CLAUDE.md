@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Every `make` target runs inside the dev container (`docker/dev.Dockerfile`: Python 3.13, JDK 17,
+Every `make` target runs inside the dev container (`docker/dev.Dockerfile`: Python 3.13, Java 21,
 uv, gitleaks, actionlint), locally and in CI, so a local green and a CI green are the same claim.
 Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 
@@ -31,5 +31,8 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make up` — start the local source stand (SQL Server 2022, Azurite) and load `data/sources/` and
   `data/raw/fhir/` into it; the SA password is generated into the git-ignored `.env`;
   `make test-stand` — read-back tests (`stand` marker, excluded from `make test`); `make down`
+- `make bronze` — after `make up`: land the stand into `data/lakehouse/Files/landing/` and run
+  `fabric/nb_bronze.Notebook/notebook-content.py` on local Spark; tests import that notebook file
+  through `clinic_chain.spark.notebook()`
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`

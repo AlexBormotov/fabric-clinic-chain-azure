@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "pl_land_sources",
+    "description": "Land the batch sources and build Bronze"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "3ac11c3c-f003-5478-93d5-96e0516dae98"
+  }
+}

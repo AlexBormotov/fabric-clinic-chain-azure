@@ -97,7 +97,8 @@ Verification of the claim: not applicable for every unit (new work); each cites 
 - **Blocked by:** U04.
 - **Scope:** PySpark notebooks kept as importable `.py` modules (Fabric notebook format in Git) that
   land each source as Delta in Bronze with ingestion metadata; Data Pipeline definitions for Blob and
-  SQL copies (cloud-only, deployed in U19).
+  SQL copies and the Dataflow Gen2 for the SharePoint workbooks (cloud-only, deployed in U19; Dataflow
+  added 2026-10-23, PLAN-U05).
 - **Completion:** local Spark 4.1 + Delta tests: Bronze row counts equal source row counts per source.
 - **Routing:** agent.
 
