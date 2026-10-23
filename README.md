@@ -21,7 +21,8 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make synth` | generate the synthetic population into `data/raw/fhir/` (~4 min, ~880 MB) |
 | `make sources` | derive the source systems from the FHIR output into `data/sources/` (~1.5 min) |
 | `make up` / `make down` | start and load the local source stand / stop it (~1 min) |
-| `make test-stand` | read the stand back and compare it with `data/sources/` |
+| `make test-stand` | read the stand (and Bronze) back and compare with `data/sources/` |
+| `make bronze` | land the stand into `data/lakehouse/Files/` and build Bronze on local Spark (~3 min) |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -75,3 +76,17 @@ counts.
 
 Loading is idempotent. `make test-stand` checks that every table and container holds exactly what
 `data/sources/` and `data/raw/fhir/` hold.
+
+## Bronze
+
+Fabric items live in [`fabric/`](fabric/) in Fabric's Git format:
+
+- `pl_land_sources` (Data Pipeline) copies every batch source unchanged into Lakehouse Files
+  `landing/<system>/<run id>/`, refreshes `df_sharepoint` (Dataflow Gen2: workbooks to CSV), then
+  runs `nb_bronze`.
+- `nb_bronze` (PySpark notebook) writes one Delta table per source: source columns as landed plus
+  `_run_id`, `_source_file` and `_ingested_at`. FHIR stays one raw JSON row per bundle file.
+
+Locally `make bronze` stands in for the pipeline and the Dataflow, then imports and runs the same
+notebook file on Spark 4.1 + Delta 4.2 (Fabric Runtime 2.0). Bronze lands in
+`data/lakehouse/Tables/`.

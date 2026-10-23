@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources bronze secrets up down
 
 setup:
 	docker compose build dev
@@ -34,6 +34,10 @@ synth:
 
 sources:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/derive_sources.py'
+
+# Needs `make up`: lands the stand into data/lakehouse/ and runs the Bronze notebook on local Spark.
+bronze:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/bronze.py'
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .

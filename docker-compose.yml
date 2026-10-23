@@ -10,6 +10,7 @@ services:
       - .:/workspace
       - uv-cache:/root/.cache/uv
       - venv:/opt/venv
+      - ivy-cache:/root/.ivy2.5.2
 
   # Local source stand (`make up`): billing source on SQL Server, raw files on the Blob emulator.
   sqlserver:
@@ -38,3 +39,4 @@ services:
 volumes:
   uv-cache:
   venv:
+  ivy-cache:
