@@ -75,6 +75,8 @@ Verification of the claim: not applicable for every unit (new work); each cites 
   (admission, transfer, discharge, with ward and bed), Excel staff rosters and bed reference; per-system
   local patient IDs; noise per AC1; ED arrival and triage timestamps (Synthea has none) generated from
   emergency encounters; ground-truth link table. Source schemas are written to `docs/contracts/`.
+  Referred inpatients (not in FHIR or lab) are added to ADT and billing to reach a configured ward
+  occupancy (PLAN-U03 approach B, approved 2026-10-23).
 - **Completion:** tests assert every noisy record resolves through ground truth, each noise rate is
   within ±1 percentage point of its configured value, and outputs match the contract schemas.
 - **Routing:** agent.
