@@ -14,7 +14,7 @@ from clinic_chain.sources import contracts
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = contracts.load(ROOT / "docs" / "contracts")
-LAKEHOUSE = ROOT / "data" / "lakehouse"
+LAKEHOUSE = ROOT / "data" / "lh_bronze"
 NB = spark.notebook("nb_bronze")
 META = ["_run_id", "_source_file", "_ingested_at"]
 
@@ -110,9 +110,13 @@ def test_pipeline_lands_every_source_then_runs_the_notebook():
     assert names == {f"copy_billing_{t}" for t in billing} | {f"copy_blob_{c}" for c in blobs} | {
         "refresh_df_sharepoint",
         "run_nb_bronze",
+        "run_nb_silver",
     }
-    [notebook] = [a for a in activities if a["type"] == "TridentNotebook"]
-    assert {d["activity"] for d in notebook["dependsOn"]} == names - {"run_nb_bronze"}
+    [notebook] = [a for a in activities if a["name"] == "run_nb_bronze"]
+    assert {d["activity"] for d in notebook["dependsOn"]} == names - {
+        "run_nb_bronze",
+        "run_nb_silver",
+    }
     assert notebook["typeProperties"]["parameters"]["run_id"]["value"] == "@pipeline().RunId"
     assert (ROOT / "fabric" / "nb_bronze.Notebook" / "notebook-content.py").exists()
 

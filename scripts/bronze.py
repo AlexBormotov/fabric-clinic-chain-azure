@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sources", type=Path, default=ROOT / "data" / "sources")
-    parser.add_argument("--lakehouse", type=Path, default=ROOT / "data" / "lakehouse")
+    parser.add_argument("--lakehouse", type=Path, default=ROOT / "data" / "lh_bronze")
     args = parser.parse_args()
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     files = args.lakehouse / "Files" / "landing"

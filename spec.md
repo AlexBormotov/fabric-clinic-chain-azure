@@ -106,15 +106,18 @@ Verification of the claim: not applicable for every unit (new work); each cites 
 - **Serves:** AC2.
 - **Blocked by:** U05.
 - **Scope:** FHIR flattening; conformed patients, encounters, conditions, medications, lab results,
-  claims, ADT; type casting, deduplication of exact duplicates; MPI identifiers joined in from U07.
+  claims, ADT; type casting, deduplication of exact duplicates; `patient_record` with every system's
+  patient rows standardized for U07 (MPI join moved to U08 on 2026-10-26, PLAN-U06: U07 needs
+  Silver patients, so U06 cannot wait for U07).
 - **Completion:** tests on fixtures for each table; reconciliation report Bronze → Silver with every
   dropped row counted by reason.
 - **Routing:** agent.
 
 ### U07 Master patient index
 - **Serves:** AC7.
-- **Blocked by:** U05.
-- **Scope:** PySpark matching: blocking on (birth year, surname soundex), Jaro-Winkler and exact-field
+- **Blocked by:** U06 (was U05; changed 2026-10-26, PLAN-U06).
+- **Scope:** reads `silver.patient_record`, writes `silver.patient_xref` (system, local patient ID →
+  master patient ID). PySpark matching: blocking on (birth year, surname soundex), Jaro-Winkler and exact-field
   agreement scoring, auto-match threshold, review band. ADR on the approach (Splink as next step).
 - **Completion:** `make mpi-eval` writes precision and recall against ground truth to
   `docs/evidence/mpi.json`; a test fails if precision < 0.98 or recall < 0.95 (owner to confirm
@@ -125,7 +128,8 @@ Verification of the claim: not applicable for every unit (new work); each cites 
 - **Serves:** AC2.
 - **Blocked by:** U06, U07.
 - **Scope:** Warehouse T-SQL: dimensions (date, clinic, ward, bed, patient, payer, diagnosis) and facts
-  (encounter, bed-day, claim, lab result, ED visit); load from Silver. Locally against SQL Server;
+  (encounter, bed-day, claim, lab result, ED visit); load from Silver, facts joined to the master
+  patient through `silver.patient_xref`. Locally against SQL Server;
   T-SQL kept to the Fabric Warehouse surface, with differences listed in the Lakehouse/Warehouse ADR.
 - **Completion:** reconciliation test source → Gold with every difference explained; sqlfluff clean.
 - **Routing:** agent.

@@ -1,116 +1,119 @@
 ---
-id: PLAN-U05
-spec: SPEC-001 / U05
+id: PLAN-U06
+spec: SPEC-001 / U06
 owner: AlexBormotov
-status: approved (approach A, Dataflow gap closed in U05, Java 21) by owner 2026-10-23
-previous: PLAN-U04 (approach A, landed in #7; see git history of this file)
+status: approach A approved 2026-10-26 with the MPI order changed as proposed; built
+previous: PLAN-U05 (approach A, landed in #8; see git history of this file)
 ---
 
-# PLAN-U05 — Bronze
+# PLAN-U06 — Silver
 
-## Facts this plan rests on (checked 2026-10-23)
+## Facts this plan rests on (measured 2026-10-23 on the full population)
 
-- Fabric Runtime 2.0 is GA and the default (learn.microsoft.com, page dated 2026-10-22): Spark 4.1,
-  **Java 21**, Scala 2.13, Python 3.13, **Delta Lake 4.2**.
-- The dev image has **JDK 17** (`openjdk-17-jre-headless`, Debian bookworm, which has no 21). Its
-  comment claims the JDK matches Runtime 2.0; that is no longer true.
-- PyPI: `delta-spark` 4.2.0 (2026-04-10) requires `pyspark>=4.0.1,<=4.1.1`; `pyspark` 4.1.1
-  (2026-01-09). `delta-spark` pulls `io.delta:delta-spark_2.13:4.2.0` from Maven Central at session
-  start (jar present). `pyarrow` 25.0.1 has a cp313 manylinux wheel.
-- Fabric Git format: a PySpark notebook is `<name>.Notebook/notebook-content.py` plus `.platform`
-  (docs dated 2026-03-05). The file is plain Python with comment markers between cells.
-- Dataflow Gen2 can write to **Lakehouse Files** as well as Tables (docs dated 2026-10-06).
-- U04 stand: billing in SQL Server, `fhir`/`lab`/`adt` in Azurite, SharePoint workbooks in a folder.
-  Source counts: billing 16,048 / 32,722 / 83,473 rows; lab 931 / 59,083; ADT 15,217 / 13,125 /
-  11,446; FHIR 1,209 bundle files; SharePoint `beds`, `rosters`.
+- Bronze (U05): 12 tables; `fhir_bundle` holds 1,206 raw bundles: 1,200 patient bundles plus
+  `hospitalInformation*` and `practitionerInformation*` per clinic. Largest bundle 12 MB.
+- Resources in the 1,200 patient bundles (all history / inside the 2024-10-01 … 2026-09-30 window):
+  Observation 97,376 / 97,376; DiagnosticReport 31,768 / 22,056; Claim and ExplanationOfBenefit
+  30,360 / 18,001 each; Procedure 27,580; Encounter 20,083 / 10,371; DocumentReference 20,083;
+  Condition 16,971 / 6,160; MedicationRequest 10,277 / 7,630; Patient 1,200; others below 5,000.
+- The lab system (59,083 results) and billing (32,722 claims) were derived in U03 **from the same
+  FHIR facts** (laboratory Observations, ExplanationOfBenefit). Taking them from FHIR too would count
+  each fact twice.
+- Bronze types: billing is typed Parquet (decimal, date, datetime2); lab, ADT and SharePoint are
+  strings; FHIR is raw JSON text.
+- SPEC-001: U07 (MPI) is blocked by U05 only, U08 (Gold) by U06 and U07.
 
 ## Gap in the spec that needs the owner's decision
 
-**No unit owns the Dataflow Gen2.** INT-001/AC2 says SharePoint Excel lands through Dataflows Gen2,
-and U19 republishes them, but no unit writes one. Proposed: U05 adds `df_sharepoint` (Power Query
-reading the two workbooks, destination Lakehouse Files as CSV), cloud-only like the pipeline.
+**U06 cannot join MPI identifiers.** Its scope says "MPI identifiers joined in from U07", but U07
+runs after U05 and needs conformed patient records itself: as written, U06 waits for U07 and U07
+would have to redo U06's conformance on raw Bronze. Proposed order: U06 builds
+`silver.patient_record` (every system's patient rows, standardized) without MPI; U07 is blocked by
+U06, reads `patient_record` and writes `silver.patient_xref` (system, local ID → master patient ID);
+U08 joins facts to the master patient through `patient_xref`. Spec edits: U06 scope drops the MPI
+join, U07 "Blocked by: U06", U08 scope gains the `patient_xref` join.
 
 ## Settings for every approach
 
-- **Flow (cloud):** pipeline `pl_land_sources` copies each source unchanged into Lakehouse Files
-  `landing/<system>/<run_id>/` (SQL tables as Parquet, blobs as they are), runs the Dataflow for
-  SharePoint (CSV into the same layout), then a Notebook activity builds Bronze for that `run_id`.
-- **Flow (local):** `src/clinic_chain/landing.py` stands in for the Copy activities and the Dataflow:
-  it reads the U04 stand (SQL → Parquet via `pyarrow`, blobs → files, xlsx sheets → CSV) into
-  `data/lakehouse/Files/landing/...`; the same Bronze code then runs on local Spark + Delta.
-  `make bronze` does both.
-- **Bronze tables:** `<system>_<table>` (`billing_claim`, `lab_results`, `adt_events`,
-  `fhir_bundle`, `sharepoint_beds`, …), source columns as landed plus `_run_id`, `_source_file`,
-  `_ingested_at` (UTC). Each run overwrites the table: sources are full extracts, raw history stays in
-  `landing/<run_id>/` and Delta time travel.
-- **FHIR grain:** one row per bundle file (raw JSON text); flattening is U06. 1,209 rows.
-- **Versions:** `pyspark==4.1.1`, `delta-spark==4.2.0`, `pyarrow==25.0.1`. Java 21 in the dev image:
-  `COPY --from=eclipse-temurin:21-jre` replaces the Debian JDK 17 (one line, no base-image change).
-  Ivy cache in a compose volume so the Delta jar downloads once.
-- **Cloud-only definitions:** `fabric/pl_land_sources.DataPipeline/pipeline-content.json`,
-  `fabric/df_sharepoint.Dataflow/` (if the gap is approved). Connections and workspace IDs are
-  placeholders resolved by `parameter.yml` in U19. Lakehouse items come with U18/U19.
-- **Tests:**
-  - fast (`make test`, local Spark on tiny landed fixtures): each format lands with the metadata
-    columns, row count equals the fixture's, rerun overwrites (no doubling); pipeline JSON parses,
-    has a Copy activity per source and points at the notebook that exists.
-  - full (`stand` marker, CI job `stand` after `make up bronze`): per source, Bronze row count equals
-    the source row count read from the stand.
+- **Code:** one self-contained notebook `fabric/nb_silver.Notebook/notebook-content.py` (the U05
+  pattern: imported by tests, run cell guarded), parameters `run_id`, `bronze_root`, `silver_root`;
+  session time zone set to UTC in the notebook. `pl_land_sources` gains a `run_nb_silver` activity
+  after `run_nb_bronze`. `make silver` runs it locally; `make bronze` stays as is.
+- **Lakehouses:** `lh_bronze` and `lh_silver`. Locally `data/lakehouse/` becomes `data/lh_bronze/`
+  and Silver goes to `data/lh_silver/Tables/` (touches the U05 runner, tests and docs: paths only).
+- **System of record per fact:** FHIR → patient, encounter, condition, medication_request; lab
+  system → lab_result; billing → claim, claim_line; ADT → adt_event, ed_visit; SharePoint → bed,
+  staff, roster (Gold needs ward and bed dimensions). FHIR Observations, Claims and EOBs are not
+  carried to Silver (they are the lab and billing facts); every other FHIR resource type is out of
+  scope and counted as such.
+- **Tables:** `patient_record` (system, local_patient_id, clinic_id, given/family name trimmed,
+  birth_date, sex, phone as 10 digits or NULL, postal_code; one row per source patient row, noise
+  kept: resolving it is U07), plus one table per fact above with typed columns (timestamps UTC,
+  decimals, dates) and source keys. History is kept: the analytical window is applied in Gold and
+  the metrics.
+- **Drops:** exact duplicates (all source columns equal) and rows whose required key or timestamp
+  fails to cast; nothing else is filtered.
+- **Reconciliation:** `silver.reconciliation` per run: for each Silver table, input rows (Bronze rows,
+  or FHIR resources of that type), output rows and dropped rows by reason (`exact_duplicate`,
+  `invalid_<column>`); for FHIR also resources by out-of-scope type. Invariant tested:
+  `input = output + Σ dropped`.
+- **Tests:** fast (`make test`, fixtures for every table: a bundle with each in-scope resource and one
+  out-of-scope, CSV rows with a duplicate and an uncastable timestamp, reconciliation balance);
+  full (`stand` marker, after `make bronze silver`): reconciliation balances for every table, Silver
+  row counts equal the measured FHIR resource counts and the source counts minus counted drops.
 
-## The choice: where the Bronze code lives
+## The choice: how FHIR is flattened
 
-### Approach A — Self-contained notebook (recommended)
+### Approach A — Explicit schemas with `from_json` (recommended)
 
-One parameterized notebook `fabric/nb_bronze.Notebook/notebook-content.py` holds all Bronze logic
-(source table: format, landing path, Bronze name). Its run cell is guarded by
-`if __name__ == "__main__"`, so tests import the file with `importlib` and call its functions with a
-local SparkSession.
+Per in-scope resource type, a small `StructType` naming only the fields Silver keeps. The bundle is
+parsed once with a schema of `entry[].resource` as a JSON string plus `resourceType`, filtered by
+type, then each resource string is parsed with its schema and selected into columns.
 
-- Files: `fabric/nb_bronze.Notebook/*`, `fabric/pl_land_sources.DataPipeline/*`,
-  `fabric/df_sharepoint.Dataflow/*`, `src/clinic_chain/landing.py`, `src/clinic_chain/spark.py`
-  (local session), `scripts/bronze.py`, `tests/test_bronze.py`, `Makefile`, `pyproject.toml`,
-  `uv.lock`, `docker/dev.Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`,
-  `README.md`, `CLAUDE.md`, `spec.md` (gap), `plan.md`.
-- Invariants: the file Fabric runs is the file the tests run; nothing to build or attach in Fabric;
-  the notebook starts on the starter pool (seconds).
-- Red check: fast tests import the notebook itself; a broken notebook fails `make test`.
-- Assumption to confirm in U20: Fabric runs notebook cells with `__name__ == "__main__"` (IPython
-  kernel). If not, the guard becomes a check for the `spark` global, a one-line change.
-- Cost: code shared with later notebooks (Silver) cannot be imported in Fabric without `%run`, so
-  each notebook stays self-contained.
-- Reverse: delete the `fabric/` items and the local runner.
+- Files: `fabric/nb_silver.Notebook/*`, `fabric/pl_land_sources.DataPipeline/pipeline-content.json`,
+  `scripts/silver.py`, `scripts/bronze.py`, `tests/test_silver.py`, `tests/test_bronze.py`,
+  `Makefile`, `.github/workflows/ci.yml`, `README.md`, `CLAUDE.md`, `spec.md` (gap), `plan.md`.
+- Invariants: the schemas document exactly what Silver reads from FHIR; unknown fields are ignored;
+  a missing required field becomes NULL and is dropped and counted, never silently passed.
+- Red check: fixture tests per resource type; reconciliation balance.
+- Cost: schemas must be written for four resource types (~60 lines).
+- Reverse: delete the notebook and its pipeline activity.
 
-### Approach B — Library wheel, thin notebook
+### Approach B — Inferred schema (`spark.read.json`)
 
-Bronze logic in `src/clinic_chain/bronze.py`, built as a wheel and attached to a Fabric Environment;
-the notebook only imports and calls it.
+Let Spark infer one schema over all bundles, then select the needed paths.
 
-- Files: as A, plus `fabric/env_clinic.Environment/` and a wheel build step in CI and U19.
-- Invariants: one import path for all notebooks; ordinary unit tests.
-- Red check: same tests against the module; the notebook itself is untested locally.
-- Cost: custom libraries in an Environment are installed at session start, which adds minutes to
-  each session (starter pools otherwise start in seconds); one more item to deploy and republish on every code change;
-  the notebook in Git is no longer the code that runs.
-- Reverse: inline the module back into the notebook, delete the Environment.
+- Invariants: none on shape; the inferred schema changes with the data (a field Synthea omits in
+  one run disappears from the schema and the select fails).
+- Cost: inference scans ~900 MB and merges every resource type into one wide struct; slow locally,
+  and differs between fixture and full data, so fast tests do not test the real path.
+- Reverse: same as A.
+
+### Approach C — Python parsing in a UDF
+
+Parse each bundle with `json` in `mapInPandas`, emit rows per resource type.
+
+- Invariants: plain Python is easy to read and to test outside Spark.
+- Cost: every bundle crosses the JVM↔Python boundary; Python per-row work on the cluster; the most
+  common Spark review comment for this pattern is "use from_json".
+- Reverse: same as A.
 
 ## Recommendation
 
-A, with the Dataflow gap closed in U05 and the dev image moved to Java 21.
+A, with the MPI order changed as proposed.
 
-## Implementation notes (measured 2026-10-23)
+## Implementation notes (2026-10-26)
 
-- `make bronze` on the full population: ~2 min 45 s; every Bronze table equals its source
-  (billing 16,048 / 32,722 / 83,473; lab 931 / 59,083; ADT 15,217 / 13,125 / 11,446; SharePoint
-  beds 48, staff 292, roster 6,615; FHIR 1,206). Correction: FHIR has **1,206** bundle files; the
-  1,209 above also counted the three `metadata/` files, which are not a source.
-- Fast tests share one notebook run pair (r1, then r2): `make test` 20 passed in ~35 s, most of it
-  Spark start and Delta writes. Negative control: dropping the CSV `escape` option fails exactly
-  the quoting test.
-- FHIR is read with `recursiveFileLookup` + `pathGlobFilter` rather than a `*/*.json` glob, which
-  made Spark log a `FileNotFoundException` while probing for streaming metadata.
-- Locally `make bronze` deletes the previous landing before the new one (each holds ~900 MB). In
-  Fabric, landing history is kept; retention is not set by this unit.
-- The pipeline and Dataflow definitions are untested against Fabric until U19/U20: IDs are zero
-  GUIDs for `parameter.yml`, and the Dataflow's Lakehouse Files destination (CSV under
-  `landing/sharepoint/<run_id>/`) is not part of the documented item definition parts, so it is
-  bound when the Dataflow is first published and then committed back from Fabric.
+- Medication codes: some MedicationRequests reference a `Medication` resource (1,460 in the bundles)
+  instead of carrying `medicationCodeableConcept`. `Medication` is parsed with its own small schema only to resolve
+  those codes; it is still reported as `out_of_scope`, as it is not a Silver table.
+- `bronze_root` defaults to a OneLake path with placeholder GUIDs, resolved by parameter.yml at
+  deploy (U19), like the other IDs in `fabric/`. The pipeline passes only `run_id`.
+- Casts use `try_cast` and array access `try_element_at`: Spark 4 runs with ANSI mode on, where a bad
+  cast or an empty array would fail the job instead of yielding NULL.
+- Full population: `make silver` 2:20; reconciliation balances for every table and source, no row
+  dropped; FHIR inputs equal resource counts read from `data/raw/fhir/`. Negative controls: counting
+  only third copies as duplicates, and dropping the `+1` phone rule, each turned the matching fast
+  test red.
+- `tests/test_bronze.py`: the pipeline test now expects `run_nb_silver` and picks `run_nb_bronze` by
+  name, since the pipeline has two notebooks.
