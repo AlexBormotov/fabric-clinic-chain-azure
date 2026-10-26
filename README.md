@@ -21,8 +21,9 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make synth` | generate the synthetic population into `data/raw/fhir/` (~4 min, ~880 MB) |
 | `make sources` | derive the source systems from the FHIR output into `data/sources/` (~1.5 min) |
 | `make up` / `make down` | start and load the local source stand / stop it (~1 min) |
-| `make test-stand` | read the stand (and Bronze) back and compare with `data/sources/` |
-| `make bronze` | land the stand into `data/lakehouse/Files/` and build Bronze on local Spark (~3 min) |
+| `make test-stand` | read the stand, Bronze and Silver back and compare with their inputs |
+| `make bronze` | land the stand into `data/lh_bronze/Files/` and build Bronze on local Spark (~3 min) |
+| `make silver` | build Silver from Bronze into `data/lh_silver/` and print the reconciliation (~2.5 min) |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -89,4 +90,29 @@ Fabric items live in [`fabric/`](fabric/) in Fabric's Git format:
 
 Locally `make bronze` stands in for the pipeline and the Dataflow, then imports and runs the same
 notebook file on Spark 4.1 + Delta 4.2 (Fabric Runtime 2.0). Bronze lands in
-`data/lakehouse/Tables/`.
+`data/lh_bronze/Tables/`.
+
+## Silver
+
+`nb_silver` runs after `nb_bronze` in the same pipeline and writes typed tables to `lh_silver`. Each
+fact comes from one system of record, because lab results and claims were derived from the same
+FHIR facts and would otherwise count twice:
+
+| Silver table | Source |
+|---|---|
+| `patient_record` | patients of FHIR, lab, ADT and billing, one row per source record |
+| `encounter`, `condition`, `medication_request` | FHIR bundles, parsed with explicit schemas |
+| `lab_result` | lab system |
+| `claim`, `claim_line` | billing |
+| `adt_event`, `ed_visit` | ADT |
+| `bed`, `staff`, `roster` | SharePoint |
+
+`patient_record` is standardized, not matched: names trimmed (Synthea's numeric suffixes removed),
+sex as M/F/U, phone as 10 digits. Matching records to one person is U07. Timestamps are UTC.
+
+A row is dropped only when it exactly duplicates another, when a required column is empty or when
+a value does not cast. `reconciliation` records, per Silver table and source, the rows in, the rows
+out and the rows dropped by reason; FHIR resource types Silver does not use (Observation, Claim,
+ExplanationOfBenefit and others) are counted as `out_of_scope`. On the full population nothing is
+dropped: Silver holds 1,200 FHIR patients, 20,083 encounters, 16,971 conditions, 10,277 medication
+requests and every source row.

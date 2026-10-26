@@ -39,6 +39,7 @@ jobs:
       - run: make sources
       - run: make up
       - run: make bronze
+      - run: make silver
       - run: make test-stand
 
   secrets:

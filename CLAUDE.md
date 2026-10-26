@@ -31,8 +31,10 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make up` — start the local source stand (SQL Server 2022, Azurite) and load `data/sources/` and
   `data/raw/fhir/` into it; the SA password is generated into the git-ignored `.env`;
   `make test-stand` — read-back tests (`stand` marker, excluded from `make test`); `make down`
-- `make bronze` — after `make up`: land the stand into `data/lakehouse/Files/landing/` and run
+- `make bronze` — after `make up`: land the stand into `data/lh_bronze/Files/landing/` and run
   `fabric/nb_bronze.Notebook/notebook-content.py` on local Spark; tests import that notebook file
   through `clinic_chain.spark.notebook()`
+- `make silver` — after `make bronze`: run `fabric/nb_silver.Notebook/notebook-content.py` from
+  `data/lh_bronze/Tables/` into `data/lh_silver/Tables/` and print the reconciliation
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`
