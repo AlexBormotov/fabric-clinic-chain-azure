@@ -51,5 +51,7 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make replay` — after `make up`: replay `data/sources/adt/events.csv` into the Event Hubs
   emulator (`ARGS='--limit 2000 --rate 20'`); `ADT_EVENTHUB_CONNECTION_STRING` points it at an
   Eventstream custom endpoint instead
+- `make kql-test` — without `make up`: start the Kusto emulator alone (4 GB cap), run the `kusto`
+  tests on `fabric/kqldb_beds.KQLDatabase/DatabaseSchema.kql`, remove the emulator
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`

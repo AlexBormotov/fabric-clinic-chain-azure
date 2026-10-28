@@ -60,6 +60,14 @@ services:
       timeout: 2s
       retries: 30
 
+  # Eventhouse stand-in (U12): the Kusto emulator, no auth, HTTP on :8080. Heavy (4.5 GB image);
+  # `make kql-test` starts it alone and removes it afterwards. Not part of `make up`.
+  kusto:
+    image: mcr.microsoft.com/azuredataexplorer/kustainer-linux:2026.10.13.0655-2640-482fe45-weeklyproduction
+    environment:
+      ACCEPT_EULA: "Y"
+    mem_limit: 4g
+
 volumes:
   uv-cache:
   venv:

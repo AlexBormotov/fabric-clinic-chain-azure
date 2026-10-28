@@ -1,0 +1,63 @@
+// KQL script
+// Live ADT events (U12). Eventstream ingests each event body as JSON into adt_raw through the
+// adt_raw_json mapping; an update policy types it into adt_event. Events can arrive late or twice
+// (same event_id): bed_current orders by event time, never by arrival, so neither changes it.
+// bed holds the bed reference (SharePoint beds sheet, Silver table bed); it is data, loaded
+// outside this script.
+
+.create-merge table adt_raw (payload:dynamic)
+
+.create-or-alter table adt_raw ingestion json mapping 'adt_raw_json' '[{"column":"payload","path":"$","datatype":"dynamic"}]'
+
+.create-merge table adt_event (event_id:long, event_type:string, event_time:datetime, clinic_id:string, stay_id:string, adt_patient_id:string, ward_id:string, bed_id:string, from_ward_id:string, from_bed_id:string, ingested_at:datetime)
+
+.create-merge table bed (clinic_id:string, clinic_name:string, ward_id:string, ward_name:string, bed_id:string)
+
+.create-or-alter function with (folder = "ingest", docstring = "adt_raw typed as adt_event; update policy query") adt_parse() {
+    adt_raw
+    | project
+        event_id = tolong(payload.event_id),
+        event_type = tostring(payload.event_type),
+        event_time = todatetime(payload.event_time),
+        clinic_id = tostring(payload.clinic_id),
+        stay_id = tostring(payload.stay_id),
+        adt_patient_id = tostring(payload.adt_patient_id),
+        ward_id = tostring(payload.ward_id),
+        bed_id = tostring(payload.bed_id),
+        from_ward_id = tostring(payload.from_ward_id),
+        from_bed_id = tostring(payload.from_bed_id),
+        ingested_at = ingestion_time()
+}
+
+.alter table adt_event policy update @'[{"IsEnabled": true, "Source": "adt_raw", "Query": "adt_parse()", "IsTransactional": true, "PropagateIngestionProperties": false}]'
+
+.create-or-alter function with (folder = "beds", docstring = "Bed state changes: A01/A02 occupy bed_id, A02 frees from_bed_id, A03 frees bed_id") bed_changes() {
+    union
+        (adt_event
+        | where event_type in ("A01", "A02")
+        | project clinic_id, ward_id, bed_id, event_time, occupied = true, stay_id, adt_patient_id, event_id),
+        (adt_event
+        | where event_type == "A03"
+        | project clinic_id, ward_id, bed_id, event_time, occupied = false, stay_id = "", adt_patient_id = "", event_id),
+        (adt_event
+        | where event_type == "A02"
+        | project clinic_id, ward_id = from_ward_id, bed_id = from_bed_id, event_time, occupied = false, stay_id = "", adt_patient_id = "", event_id)
+}
+
+// The last change per bed in the order of nb_bed_history: event_time, then free before occupied
+// at one instant, then event_id. arg_max takes one key, so the three are packed into a long:
+// whole seconds since 2000 (the contract has no fractions), the occupied bit, event_id < 10^9.
+.create-or-alter function with (folder = "beds", docstring = "Current state per bed; robust to late and duplicate events") bed_current() {
+    bed_changes()
+    | extend _order = (tolong((event_time - datetime(2000-01-01)) / 1s) * 2 + iff(occupied, 1, 0)) * 1000000000 + event_id
+    | summarize arg_max(_order, clinic_id, ward_id, occupied, stay_id, adt_patient_id, event_id, event_time) by bed_id
+    | project clinic_id, ward_id, bed_id, occupied, stay_id, adt_patient_id, since = event_time, event_id
+}
+
+// Every reference bed counts; a bed with no event yet is free. Wards come from the reference.
+.create-or-alter function with (folder = "beds", docstring = "Occupied beds / beds per ward, now; for the live map and the Activator rule") ward_occupancy() {
+    bed
+    | join kind = leftouter (bed_current() | project bed_id, occupied) on bed_id
+    | summarize beds = count(), occupied_beds = countif(occupied == true) by clinic_id, clinic_name, ward_id, ward_name
+    | extend occupancy = round(todouble(occupied_beds) / beds, 4)
+}
