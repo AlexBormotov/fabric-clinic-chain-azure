@@ -1,107 +1,55 @@
 ---
-id: PLAN-U13
-spec: SPEC-001 / U13
+id: PLAN-U09
+spec: SPEC-001 / U09
 owner: AlexBormotov
-status: approach B taken 2026-10-28 under the owner's standing go-ahead
-previous: PLAN-U08 (landed in #11; see git history of this file)
+status: approach A taken 2026-10-28 under the owner's standing go-ahead; the metric definitions in
+  GLOSSARY.md still await the owner's review (spec routing: person approves definitions)
+previous: PLAN-U13 (landed in #15), PLAN-U08 (#11); see git history of this file
 ---
 
-# PLAN-U13 — Bed state history (SCD2)
+# PLAN-U09 — Metric definitions and reference values
 
 ## Facts this plan rests on
 
-- `silver.adt_event` (U06) holds A01 admit, A02 transfer (`from_ward_id`/`from_bed_id` set) and A03
-  discharge; `event_id` is the contract's primary key. Stays open at the horizon have no A03.
-- U03 never double-books a bed, but a bed can be freed and taken at the same instant (a discharge
-  and an admit, or an ICU-to-MED transfer, at one timestamp).
-- nb_silver overwrites `adt_event` on every run and drops exact duplicate rows. Late and duplicate
-  events come from the U11 producer; a duplicate is the same `event_id` sent again.
-- Delta 4.2 MERGE supports `whenNotMatchedBySource` with a condition on the target.
+- Generator output, measured 2026-10-28 from `data/sources/`: 6,374 ADT stays (A01), 6,338
+  discharges (36 open at the window's end), 413 transfers; 32,722 claims (2,161 denied); 11,446 ED
+  visits; 48 beds in 3 clinics.
+- pandas 3.0.6 (PyPI, released 2026-09-17; 3.1.0 of 2026-10-22 is under two weeks old).
+- T-SQL rejects an aggregate over an expression with a subquery (`AVG(CASE WHEN EXISTS …)`), and
+  `AVG` over `decimal` literals keeps only 6 decimal places; both measured on SQL Server 2022.
 
-## Model
+## Approaches
 
-`silver.bed_state_history`: one row per bed and interval. Columns `clinic_id`, `ward_id`, `bed_id`,
-`valid_from`, `valid_to` (NULL = current), `is_current`, `occupied`, `stay_id`, `adt_patient_id`
-(NULL when free), `event_id` (the event that opened the interval), `_run_id` (the run that last
-wrote the row).
+- **A (taken).** The reference is computed with pandas from `data/sources/` and ground truth, never
+  from Bronze, Silver or Gold. Gold exposes the metrics as views (`sql/gold/20_metrics.sql`) over a
+  new `gold.fact_stay`, per clinic and for the chain. A stand test compares them.
+- B. Reference from Silver with Spark. Rejected: it shares the pipeline's parsing, so a Silver bug
+  would hide in both sides.
 
-- A01 occupies `bed_id`; A02 occupies `bed_id` and frees `from_bed_id`; A03 frees `bed_id`.
-- Per bed, state changes are ordered by (event time, free before occupied, `event_id`); each
-  interval ends where the next change starts. Zero-length intervals (freed and taken at one
-  instant) are dropped; consecutive changes with the same state merge into one interval.
-- History starts at a bed's first event; there is no interval before it.
-- `silver.bed_event`: the log of every distinct `event_id` the notebook has seen.
+## Files
 
-## Settings for every approach
+`GLOSSARY.md`, `src/clinic_chain/metric_reference.py`, `scripts/metric_reference.py`,
+`docs/evidence/metric-reference.json`, `sql/gold/00_tables.sql` and `10_reload.sql` (`fact_stay`),
+`sql/gold/20_metrics.sql`, `tests/test_metrics.py`, `Makefile` (`metric-reference`),
+`pyproject.toml` and `uv.lock` (pandas), `.gitignore` (agent worktrees), `README.md`, `CLAUDE.md`.
 
-- **Code:** notebook `fabric/nb_bed_history.Notebook/notebook-content.py` (U06/U07 pattern),
-  parameters `run_id`, `silver_root`; `scripts/bed_history.py` and `make bed-history` run it
-  locally; `pl_land_sources` gains `run_nb_bed_history` after `run_nb_silver`; CI `stand` job runs
-  `make bed-history` before `make test-stand`.
-- **Duplicates:** events are deduplicated by `event_id` (first copy kept) before anything else; the
-  log is written with MERGE insert-when-not-matched, so a resent event is never new.
-- **Tests (fast):** fixture events for two transfers and a same-instant discharge/admit, fed in
-  batches: in order; a late transfer that re-splits an open interval; duplicates within and across
-  batches; batches in reverse time order. Each yields the expected intervals with no gaps or
-  overlaps per bed. A bed with no new events is not rewritten.
-- **Test (`stand`):** on the full population: no gaps or overlaps, one current row per bed, every
-  bed exists in `silver.bed`, and occupied intervals equal the stay segments derived from
-  `adt_event` (both directions).
+## Invariants and the checks that go red
 
-## The choice: how a late event updates the history
+- Gold metrics equal the reference to a relative 1e-6 for every scope (`test_gold_metrics_match_the_reference`,
+  `test_gold_payer_mix_matches_the_reference`). There is no looser tolerance for readmissions: the
+  measured MPI-vs-ground-truth gap is 0.0.
+- Every metric is defined in `GLOSSARY.md` (`test_glossary_defines_every_metric`).
 
-### Approach A — Interval surgery by MERGE
+Negative control, run 2026-10-28: a 31-day readmission window in the SQL moved the chain rate by
+0.00049 and Worcester by 0.0015. The original tolerance of 0.005 let this pass, so it was removed;
+with the exact check the test fails (`ALL readmission_30d_rate 0.10347 vs 0.10298`).
 
-Each new event is located in the existing intervals of its bed: the interval containing its time
-is closed at that time and a new interval inserted, then the following interval's start is fixed.
+## Measured
 
-- Every event type and every collision (two late events in one batch, a late event at an existing
-  boundary, a late event that makes two neighbours equal) is its own MERGE case.
-- Cost: hard to prove complete; out-of-order batches multiply the cases.
+Chain over the window: occupancy 0.7998, ALOS 4.40 days, turnover 66.0 per bed-year, 30-day
+readmission 0.1030, ED wait median 45 min, revenue 717,462 per bed-year, denial rate 0.0660; payer
+mix led by Medicare 0.287. `make test-stand` metric tests pass in about 3 s.
 
-### Approach B — Recompute affected beds, apply by MERGE (taken)
+## Reversal
 
-New events = deduplicated events not yet in `bed_event`. Affected beds = their `bed_id` and
-`from_bed_id`. The intervals of affected beds are recomputed from all their logged events plus the
-new ones, then applied with one MERGE on (`bed_id`, `valid_from`): changed rows updated, new rows
-inserted, rows of affected beds absent from the recomputation deleted (`whenNotMatchedBySource`
-with `bed_id IN (affected)`). Then the new events are merged into `bed_event`.
-
-- Why it is correct: the history of a bed is a pure function of its event set, so a late,
-  duplicate or out-of-order event gives the same result as an in-order run by construction.
-- Why it is cheap enough: a bed has a few hundred events a year; a batch touches only its beds.
-  Unaffected beds are not rewritten (MERGE only touches matched files).
-- Crash safety: history is written before the log. A failure between the two leaves the events
-  "new" and the next run recomputes the same beds to the same result.
-- Files: `fabric/nb_bed_history.Notebook/{notebook-content.py,.platform}`,
-  `fabric/pl_land_sources.DataPipeline/pipeline-content.json`, `scripts/bed_history.py`,
-  `tests/test_bed_history.py`, `tests/test_bronze.py` (pipeline activity set), `Makefile`,
-  `.github/workflows/ci.yml`, `README.md`, `CLAUDE.md`, `plan.md`.
-- Invariants: per bed, intervals are contiguous and non-overlapping, only the last is open; the
-  result does not depend on batch order or duplicates; a stay's occupied intervals equal its
-  segments in `adt_event`.
-- Red checks: fast scenario tests; `stand` test on the full population.
-- Reverse: delete the notebook, script, test and pipeline activity; drop `bed_state_history` and
-  `bed_event`. Nothing downstream reads them yet (U08 may later).
-
-### Approach C — Full rebuild each run
-
-Overwrite the whole table from all events every run. Simplest and correct, but no MERGE, every
-bed rewritten each run, and the history loses `_run_id` lineage. Rejected against the spec scope
-("PySpark merge").
-
-## Implementation notes (2026-10-28)
-
-- Full population (`adt_event`): 13,125 events (A01 6,374, A02 413, A03 6,338), all `event_id`s
-  distinct, 6,374 stays (36 open), 48 beds, all in `silver.bed`. One bed has two events at one
-  instant.
-- `make bed-history` on it: 13,537 intervals in 22 s; a second run finds 0 new events (12 s).
-  The `stand` test passes: no gaps or overlaps, one current row per bed, occupied intervals equal
-  the stay segments both ways.
-- Negative control 1: recomputing from new events only (log ignored) fails the late and
-  out-of-order tests; restored, they pass.
-- Negative control 2: taking a bed before freeing it at one instant gives 13,536 intervals and
-  fails the `stand` test; restored, it passes.
-- A duplicate is the same `event_id` resent. If U11 resends under a new id with the same time, the
-  copy merges into the existing interval (islands of equal state); a resend with a different time
-  would move the start of the interval to the earliest copy.
+Revert the PR. `gold.fact_stay` and the views are dropped and recreated by `make gold`.

@@ -151,6 +151,42 @@ BEGIN
     LEFT JOIN diagnosis AS d ON e.encounter_id = d.encounter_id AND d.rn = 1
     WHERE e.start_at >= @window_start AND e.start_at < @window_stop;
 
+    TRUNCATE TABLE gold.fact_stay;
+    WITH admission AS (
+        SELECT
+            stay_id,
+            clinic_id,
+            adt_patient_id,
+            event_time
+        FROM silver.adt_event
+        WHERE event_type = 'A01'
+    ),
+
+    discharge AS (
+        SELECT
+            stay_id,
+            event_time
+        FROM silver.adt_event
+        WHERE event_type = 'A03'
+    )
+
+    INSERT INTO gold.fact_stay
+    SELECT
+        a.stay_id,
+        x.master_patient_id,
+        a.clinic_id,
+        YEAR(a.event_time) * 10000 + MONTH(a.event_time) * 100 + DAY(a.event_time)
+            AS admit_date_key,
+        a.event_time AS admitted_at,
+        d.event_time AS discharged_at,
+        CAST(DATEDIFF(SECOND, a.event_time, d.event_time) / 86400.0 AS decimal(12, 6))
+            AS length_of_stay_days
+    FROM admission AS a
+    INNER JOIN silver.patient_xref AS x
+        ON x.system = 'adt' AND a.adt_patient_id = x.local_patient_id
+    LEFT JOIN discharge AS d ON a.stay_id = d.stay_id
+    WHERE a.event_time >= @window_start AND a.event_time < @window_stop;
+
     -- A01 and A02 start a segment in a bed; the stay's next event ends it. Open stays end at the
     -- window's end. Each segment is cut at midnights into calendar days.
     TRUNCATE TABLE gold.fact_bed_day;

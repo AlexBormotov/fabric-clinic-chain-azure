@@ -150,6 +150,14 @@ Tests check:
   ADT events in Spark;
 - that keys are unique and every fact key resolves to a dimension.
 
+### Metrics
+
+The eight metrics are defined in [`GLOSSARY.md`](GLOSSARY.md) and exposed as Gold views
+`gold.metric_summary` and `gold.metric_payer_mix`, per clinic and for the chain.
+`make metric-reference` computes the same metrics with pandas straight from `data/sources/` into
+[`docs/evidence/metric-reference.json`](docs/evidence/metric-reference.json); a stand test requires
+Gold to match it to a relative 1e-6.
+
 ## Bed state history
 
 `nb_bed_history` runs after `nb_silver` and writes `bed_state_history`: one row per bed and interval
