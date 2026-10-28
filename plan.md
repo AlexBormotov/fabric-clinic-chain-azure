@@ -1,55 +1,108 @@
 ---
-id: PLAN-U09
-spec: SPEC-001 / U09
+id: PLAN-U16
+spec: SPEC-001 / U16
 owner: AlexBormotov
-status: approach A taken 2026-10-28 under the owner's standing go-ahead; the metric definitions in
-  GLOSSARY.md still await the owner's review (spec routing: person approves definitions)
-previous: PLAN-U13 (landed in #15), PLAN-U08 (#11); see git history of this file
+status: approach A taken 2026-10-28 under the owner's standing go-ahead
+previous: PLAN-U09 (#16), PLAN-U13 (#15), PLAN-U08 (#11); see git history of this file
 ---
 
-# PLAN-U09 — Metric definitions and reference values
+# PLAN-U16 — Warehouse PHI protection
 
 ## Facts this plan rests on
 
-- Generator output, measured 2026-10-28 from `data/sources/`: 6,374 ADT stays (A01), 6,338
-  discharges (36 open at the window's end), 413 transfers; 32,722 claims (2,161 denied); 11,446 ED
-  visits; 48 beds in 3 clinics.
-- pandas 3.0.6 (PyPI, released 2026-09-17; 3.1.0 of 2026-10-22 is under two weeks old).
-- T-SQL rejects an aggregate over an expression with a subquery (`AVG(CASE WHEN EXISTS …)`), and
-  `AVG` over `decimal` literals keeps only 6 decimal places; both measured on SQL Server 2022.
+Read on Microsoft Learn on 2026-10-28:
 
-## Approaches
+- "Dynamic data masking in Fabric Data Warehouse" (ms.date 2026-06-25):
+  - Four mask functions: `default()`, `email()`, `random(a, b)` and `partial(prefix,"pad",suffix)`.
+  - `default()` gives `XXXX` for strings and `1900-01-01` for dates.
+  - Viewing unmasked data needs "`UNMASK` on the column or `CONTROL` on the database".
+  - Workspace Admin, Member and Contributor hold `CONTROL` and see clear values.
+- "How to implement dynamic data masking" (ms.date 2024-10-09):
+  - `MASKED WITH (FUNCTION = ...)` works inline in `CREATE TABLE`.
+  - `ALTER COLUMN ... ADD MASKED` adds a mask to an existing column.
+  - The page shows `GRANT UNMASK ON dbo.EmployeeData TO [user]` (table level) and grants to a role.
+- "Column-level security in Fabric Data Warehouse" (ms.date 2024-08-21):
+  - CLS is done with `GRANT` on a column list, and roles are preferred.
+  - Only Entra authentication is supported.
+  - Direct Lake on a Warehouse falls back to DirectQuery under CLS.
+- "SQL granular permissions" (ms.date 2026-06-25):
+  - `GRANT`, `REVOKE` and `DENY` work, as do custom and built-in database roles.
+  - `CREATE USER` cannot be run explicitly: "When you run `GRANT` or `DENY`, Fabric creates the
+    database user automatically."
+- "T-SQL surface area" (ms.date 2026-09-16):
+  - `CREATE USER` is listed as unsupported.
+  - `ALTER TABLE ... ALTER COLUMN` is in preview.
+  - No page documents `CREATE LOGIN`. Fabric has no SQL logins; identities are Entra.
+- "Share your warehouse and manage permissions" (ms.date 2025-07-14):
+  - Item `Read` is CONNECT only.
+  - `ReadData` equals `db_datareader`; the workspace Viewer role has it.
+  - `ReadAll` reads the OneLake files through Spark.
+- SQL Server 2022 supports the same mask functions, column `DENY` and `UNMASK` on a table.
+- Not verified in documentation, left to the cloud run (U20):
+  - `ALTER ROLE ... ADD MEMBER` with an Entra group that has no database user yet;
+  - `GRANT SELECT ON SCHEMA::`.
 
-- **A (taken).** The reference is computed with pandas from `data/sources/` and ground truth, never
-  from Bronze, Silver or Gold. Gold exposes the metrics as views (`sql/gold/20_metrics.sql`) over a
-  new `gold.fact_stay`, per clinic and for the chain. A stand test compares them.
-- B. Reference from Silver with Spark. Rejected: it shares the pipeline's parsing, so a Silver bug
-  would hide in both sides.
+## PHI in Gold
 
-## Files
+| Table | Column | PHI | Masked | Denied to `gold_reader` |
+|---|---|---|---|---|
+| `dim_patient` | `given_name`, `family_name` | yes | `partial(1,"xxxx",0)` | no |
+| `dim_patient` | `birth_date` | yes | `default()` (1900-01-01) | no |
+| `dim_patient` | `phone` | yes | `default()` | yes |
+| `dim_patient` | `postal_code` | yes | `partial(3,"xx",0)` | no |
+| `dim_patient` | `master_patient_id`, `sex`, `home_clinic_id`, `source_records` | no | no | no |
 
-`GLOSSARY.md`, `src/clinic_chain/metric_reference.py`, `scripts/metric_reference.py`,
-`docs/evidence/metric-reference.json`, `sql/gold/00_tables.sql` and `10_reload.sql` (`fact_stay`),
-`sql/gold/20_metrics.sql`, `tests/test_metrics.py`, `Makefile` (`metric-reference`),
-`pyproject.toml` and `uv.lock` (pandas), `.gitignore` (agent worktrees), `README.md`, `CLAUDE.md`.
+- `master_patient_id` is a hash of the MPI cluster label, not of demographics.
+- Event dates in facts stay clear. The analysis needs them, and without demographics they do not
+  identify anyone.
+- No other Gold table holds a PHI column (tested).
 
-## Invariants and the checks that go red
+## Approach A — inline masks, schema GRANT plus column DENY (taken)
 
-- Gold metrics equal the reference to a relative 1e-6 for every scope (`test_gold_metrics_match_the_reference`,
-  `test_gold_payer_mix_matches_the_reference`). There is no looser tolerance for readmissions: the
-  measured MPI-vs-ground-truth gap is 0.0.
-- Every metric is defined in `GLOSSARY.md` (`test_glossary_defines_every_metric`).
+- Masks are declared inline in `CREATE TABLE gold.dim_patient` (`00_tables.sql`). The inline form
+  is GA, while `ALTER COLUMN` is in preview, and the table is recreated on every build anyway.
+- `sql/gold/30_security.sql` sets the roles and grants:
+  - it creates roles `gold_reader` and `gold_phi_reader` if they are missing;
+  - both roles get `GRANT SELECT ON SCHEMA::gold`;
+  - `gold_reader` gets `DENY SELECT (phone) ON gold.dim_patient`;
+  - `gold_phi_reader` gets `GRANT UNMASK ON gold.dim_patient`.
+- `DENY` also binds Viewers, who read through `ReadData` (`db_datareader`). A whitelist of column
+  grants would not restrict them.
+- `sql/fabric/security_members.sql` holds the Fabric-only part. It adds Entra groups to the roles,
+  and its comments state the workspace-role and `ReadAll` rules. It is not run locally.
+- Files: `sql/gold/00_tables.sql`, `sql/gold/30_security.sql`, `sql/fabric/security_members.sql`,
+  `src/clinic_chain/stand.py` (connect as another login), `tests/test_gold_security.py`,
+  `README.md`, `plan.md`.
+- Invariants:
+  - every PHI column is masked;
+  - `phone` is denied to `gold_reader`;
+  - every `dim_patient` column is classified as PHI or not;
+  - no PHI-named column exists outside `dim_patient` (this covers U09's `fact_stay`);
+  - no Gold view names a PHI column, because ownership chaining would bypass the `DENY`;
+  - `sql/gold/` creates no user, login or role membership.
+- Red checks:
+  - fast: classification, masks, denied set and no-principal tests;
+  - `stand`: as local login `u16_reader` (role `gold_reader`), names show as `Xxxxx`, birth dates
+    as 1900-01-01 and postal codes as their first three characters plus `xx`. `phone` and
+    `SELECT *` fail with "SELECT permission was denied on the column 'phone'", and `silver` is denied.
+  - `stand`: as `u16_phi_reader`, values equal what `sa` reads, phone included.
+  - The logins exist only in test setup and are dropped afterwards.
+- Reverse: delete `30_security.sql` and the `MASKED WITH` clauses, then
+  `DROP ROLE gold_reader, gold_phi_reader`.
 
-Negative control, run 2026-10-28: a 31-day readmission window in the SQL moved the chain rate by
-0.00049 and Worcester by 0.0015. The original tolerance of 0.005 let this pass, so it was removed;
-with the exact check the test fails (`ALL readmission_30d_rate 0.10347 vs 0.10298`).
+## Approaches not taken
 
-## Measured
+- **B. Column whitelist: `GRANT SELECT` per table plus a column list on `dim_patient`.** It fails
+  closed for new columns. But it does not restrict Viewers, who read everything through `ReadData`,
+  and it must list every Gold table. The classification test covers new columns instead.
+- **C. Masks added by `ALTER COLUMN ... ADD MASKED` in `30_security.sql`.** It keeps the security
+  in one file, but `ALTER COLUMN` is in preview in Fabric.
 
-Chain over the window: occupancy 0.7998, ALOS 4.40 days, turnover 66.0 per bed-year, 30-day
-readmission 0.1030, ED wait median 45 min, revenue 717,462 per bed-year, denial rate 0.0660; payer
-mix led by Medicare 0.287. `make test-stand` metric tests pass in about 3 s.
+## Implementation notes (2026-10-28)
 
-## Reversal
-
-Revert the PR. `gold.fact_stay` and the views are dropped and recreated by `make gold`.
+- sqlfluff (tsql) cannot parse `DENY SELECT ON t (col)`. It parses `DENY SELECT (col) ON t`, which
+  both engines accept.
+- mssql_python pools connections, so the test kills the login's sessions before it drops the login.
+- Negative control: one rebuild with the `DENY` and `UNMASK` lines and the `given_name` mask
+  removed. Five tests failed: masks, denied set, masked view, CLS denial and clear view. All nine
+  passed after the restore.
