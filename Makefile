@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval quality secrets up down
 
 setup:
 	docker compose build dev
@@ -50,6 +50,10 @@ mpi:
 # Needs `make mpi`: precision and recall against ground truth into docs/evidence/mpi.json.
 mpi-eval:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/mpi.py --eval'
+
+# Needs `make silver`: Soda data contracts on data/lh_silver/; fails when a check fails.
+quality:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/quality.py'
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .

@@ -11,6 +11,8 @@ dependencies = [
     "pyarrow==25.0.1",
     "pyspark==4.1.1",
     "pyyaml==6.0.3",
+    "soda-core==4.29.0",
+    "soda-sparkdf==4.29.0",
 ]
 
 [dependency-groups]

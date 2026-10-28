@@ -25,6 +25,7 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make bronze` | land the stand into `data/lh_bronze/Files/` and build Bronze on local Spark (~3 min) |
 | `make silver` | build Silver from Bronze into `data/lh_silver/` and print the reconciliation (~2.5 min) |
 | `make mpi` / `make mpi-eval` | match patient records into `patient_xref` / score it against ground truth |
+| `make quality` | Soda data contracts on Silver; fails when a check fails |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -132,3 +133,13 @@ writes `patient_xref` (system, local patient ID → master patient ID) and `pati
 `make mpi-eval` scores the result against the generator's ground truth, which never reaches Fabric.
 Results are in [`docs/evidence/mpi.json`](docs/evidence/mpi.json). CI fails below precision 0.98 or
 recall 0.95.
+
+## Data quality
+
+`nb_quality` runs after `nb_silver` and verifies Soda Core v4 data contracts (`soda-sparkdf`) on
+Silver: 48 checks over nine tables. They cover non-null and unique keys, value domains and ranges,
+and referential integrity. Every encounter's patient must be an EHR patient record; conditions,
+claim lines and ADT events must reference existing encounters, claims and beds. A check that fails
+or cannot be evaluated fails the notebook, and with it the pipeline activity. On the full Silver all
+48 checks pass in 23 s. A fixture with one orphaned encounter fails the patient ↔ encounter check.
+How Soda runs on Runtime 2.0 is recorded in [ADR 0003](docs/adr/0003-soda-on-runtime-2.md).

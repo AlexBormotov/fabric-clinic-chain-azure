@@ -41,6 +41,7 @@ jobs:
       - run: make bronze
       - run: make silver
       - run: make mpi
+      - run: make quality
       - run: make test-stand
 
   secrets:
