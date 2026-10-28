@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval secrets up down tf-check
 
 setup:
 	docker compose build dev
@@ -18,6 +18,15 @@ lint:
 		&& uv run ruff format --check . \
 		&& if [ -d sql ]; then uv run sqlfluff lint sql; fi \
 		&& actionlint'
+	$(MAKE) tf-check
+
+# Offline: fmt, provider schema validation and tflint. Never plans or applies (no cloud call).
+tf-check:
+	$(RUN) sh -c 'cd infra \
+		&& terraform fmt -check -recursive -diff \
+		&& terraform init -backend=false -input=false -no-color > /dev/null \
+		&& terraform validate -no-color \
+		&& tflint --recursive --config "$$PWD/.tflint.hcl"'
 
 test:
 	$(RUN) sh -c 'uv sync --frozen --quiet && uv run pytest'

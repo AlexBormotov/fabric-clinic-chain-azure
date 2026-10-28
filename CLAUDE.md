@@ -39,5 +39,8 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make mpi` — after `make silver`: run `fabric/nb_mpi.Notebook/notebook-content.py` (patient
   matching into `patient_xref`); `make mpi-eval` — precision/recall vs ground truth into
   `docs/evidence/mpi.json`
+- `make tf-check` — `terraform fmt -check`, `validate` (after `init -backend=false`) and `tflint` on
+  `infra/`; part of `make lint`. Never `plan` or `apply` against a subscription from an agent: the
+  owner applies from `docker compose run --rm infra` after `az login` (`infra/README.md`)
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`

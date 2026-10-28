@@ -1,120 +1,103 @@
 ---
-id: PLAN-U07
-spec: SPEC-001 / U07
+id: PLAN-U18
+spec: SPEC-001 / U18
 owner: AlexBormotov
-status: approach A approved 2026-10-28 with both gaps resolved as proposed; built
-previous: PLAN-U06 (approach A, landed in #9; see git history of this file)
+status: approach A taken 2026-10-28 under the owner's standing go-ahead; built
+previous: PLAN-U07 (approach A, landed in #10; see git history of this file)
 ---
 
-# PLAN-U07 — Master patient index
+# PLAN-U18 — Terraform
 
-## Facts this plan rests on (measured 2026-10-28 on the full population)
+## Facts this plan rests on (read 2026-10-28)
 
-- `silver.patient_record`: 33,396 records (FHIR 1,200, lab 931, ADT 15,217, billing 16,048) of
-  15,326 persons (ground truth). Records per person: 1 (40), 2 (12,936), 3 (1,969), 4 (330),
-  5 (49), 6 (2). True matching record pairs: 21,343.
-- U03 noise per system: name typo 4%, day/month swap 2%, phone reformatted 25%, within-system
-  duplicates 5%. Nothing removes or changes a phone, a sex or a clinic.
-- After U06 normalizes phones, **all 21,343 true pairs share the phone**; 86 pairs of different
-  persons share one too (random collisions in the 555 range). Sex and clinic agree in every true
-  pair. Phone equality alone would score precision 0.996 and recall 1.0.
-- Blocking (candidate pairs / share of true pairs kept): spec's (birth year, surname soundex)
-  45,144 / 0.979; plus exact birth date 65,309 / 0.9992; plus phone 65,412 / 1.0.
-- Spark 4.1 has `soundex` but no Jaro-Winkler function (checked: `UNRESOLVED_ROUTINE`).
-- Ground truth names the FHIR system `ehr`; `silver.patient_record` writes `fhir`.
-- Ground truth stays local (`never loaded as a source`): evaluation runs locally and in CI, not in
-  Fabric.
-
-## Gaps that need the owner's decision
-
-1. **The data makes the MPI trivial.** With phones intact in every true pair, any scorer that
-   uses phone passes the 0.98/0.95 gate, and the result says little about matching. Proposed: add
-   two noise rates to U03, `phone_missing` 0.10 (phone emptied) and `phone_changed` 0.05 (a new
-   number), applied like the other rates. This is a U03 change: `config/sources.yaml`,
-   `src/clinic_chain/sources/noise.py`, `tests/test_sources.py` (exact-rate tests extended),
-   `docs/contracts/README.md`, followed by `make sources` and Bronze and Silver rebuilt. Alternative:
-   keep the data and state in the evidence that the phone is never noisy.
-2. **One name for the FHIR system.** Proposed: Silver writes `ehr`, the term the ground truth
-   already uses (FHIR is the format, EHR the system); `nb_silver`, `tests/test_silver.py` and
-   README change one value.
+- **Providers (Terraform Registry API).** `microsoft/fabric` 1.14.0 (2026-09-17) is the latest.
+  `hashicorp/azurerm` latest is 5.11.0 (2026-10-23) and 5.10.0 (2026-10-15); both are younger than two
+  weeks, so 5.9.0 (2026-10-08) is pinned. `Azure/azapi` 2.13.0 (2026-09-28). `hashicorp/random` 3.9.1
+  (2026-09-11).
+- **Tools (GitHub releases).** Terraform 1.16.6 (2026-10-14; 1.17.x is younger than two weeks).
+  tflint 0.64.0 (2026-07-17; 0.65.0 is 6 days old). `tflint-ruleset-azurerm` 0.32.0 (2026-04-25; 0.33.0
+  is 3 days old). SHA-256 sums taken from the vendors' published checksum files.
+- **Fabric resources (provider docs at tag v1.14.0).** GA, no `preview` flag: `fabric_workspace`
+  (`capacity_id`), `fabric_workspace_git` (GitHub needs `git_credentials.source =
+  "ConfiguredConnection"` and a `connection_id`; `initialization_strategy` `PreferRemote` or
+  `PreferWorkspace`), `fabric_deployment_pipeline` (2–10 stages, each optionally bound to a
+  workspace), `fabric_lakehouse` (`configuration.enable_schemas`), `fabric_warehouse`,
+  `fabric_eventhouse`, `fabric_eventstream`, `fabric_workspace_role_assignment`, data source
+  `fabric_capacity` (by `display_name`). The provider authenticates with the Azure CLI (`use_cli`).
+- **Capacity.** `azurerm_fabric_capacity` in azurerm 5.9.0: `sku { name = "F2", tier = "Fabric" }`,
+  `administration_members` (UPN for users). No API or Terraform creates a trial capacity
+  (`docs/research/fabric-facts-2026-10-21.md`).
+- **Azure SQL free offer.** azurerm 5.9.0, 5.11.0 and `main` have **no** free-offer arguments on
+  `azurerm_mssql_database`. Issue hashicorp/terraform-provider-azurerm#23438 is open; PR #32055 (adds
+  `use_free_limit`, `free_limit_exhaustion_behavior`) is open; PR #32277 closed unmerged. The ARM
+  API `Microsoft.Sql/servers/databases@2025-01-01` (stable) has `useFreeLimit` (bool; the schema text still says one database
+  per subscription, the free-offer page says ten) and `freeLimitExhaustionBehavior` (`AutoPause`,
+  `BillOverUsage`), so the database is an `azapi_resource`. Free offer terms (Learn, updated
+  2026-10-12): per database 100,000 vCore-seconds, 32 GB data, 32 GB backup per month; up to 10 per
+  subscription; General Purpose serverless Gen5 2 vCores; auto-pause after 15 min idle (fixed);
+  `AutoPause` on exhaustion stops charges, `BillOverUsage` cannot be switched back; free offer only on
+  a new database; most subscription types, not Azure for Students Starter.
+- **Prices (Azure Retail Prices API, West Europe, USD).** Every Fabric capacity meter is $0.22 per
+  CU-hour, so **F2 (2 CU) is $0.44/h** pay-as-you-go, billed per second while it exists and is not
+  paused. Blob Hot LRS: $0.0196/GB-month, writes $0.054 per 10k, reads $0.0043 per 10k.
+- **Fabric trial (Learn, 2026-08-12).** Free for 60 days, F4 or F64; no Copilot, no Trusted
+  Workspace Access, no Private Link; at expiry workspaces fall back to Pro and Fabric items are kept
+  7 days. Trial count per tenant is limited.
+- **Repository.** Notebooks write `Tables/<name>` (no schema segment), so lakehouses are created
+  without schemas. Local stand names: database `clinic_billing`, containers `fhir`, `lab`, `adt`.
+  The Dockerfile pins tool versions but does not verify checksums today.
 
 ## Settings for every approach
 
-- **Code:** notebook `fabric/nb_mpi.Notebook/notebook-content.py` (U05/U06 pattern), parameters
-  `run_id`, `silver_root`; reads `patient_record`, writes `patient_xref` (system,
-  local_patient_id, master_patient_id) and `patient_match_review` (pairs in the review band, with
-  their score). `pl_land_sources` gains `run_nb_mpi` after `run_nb_silver`. `make mpi` runs it
-  locally.
-- **Blocking:** union of (birth year, surname soundex), exact birth date and phone; the share of
-  true pairs kept by blocking is reported.
-- **Comparison:** Jaro-Winkler on given and family name (a plain-Python function as a Spark UDF,
-  no dependency; tested against published reference values), birth date (exact, day/month
-  swapped, same year), sex, phone, postal code, clinic. Records of the same system are compared
-  too (within-system duplicates).
-- **Clusters:** auto-matched pairs are joined into connected components (iterative min-label
-  propagation in Spark); `master_patient_id` is a hash of the smallest record key in the
-  component. Review-band pairs are not merged.
-- **Evaluation:** `make mpi-eval` (local, reads `data/sources/ground_truth/`) writes
-  `docs/evidence/mpi.json`: pairwise precision and recall (a record pair is predicted when both
-  records share a master ID; true when they share a person), blocking recall, review-band size,
-  thresholds. Ground truth is used only to evaluate, never to set weights or thresholds.
-- **Tests:** fast: Jaro-Winkler reference values, blocking and scoring on fixture records, cluster
-  propagation (chains merge, review pairs do not); `stand` (CI `stand` job gains `make mpi` and
-  `make mpi-eval`): precision ≥ 0.98 and recall ≥ 0.95, every Silver patient record has exactly one
-  master ID.
-- **ADR:** `docs/adr/0001-mpi-approach.md`: own scoring now, Splink as the next step.
+- **Layout.** One root in `infra/` with modules `infra/modules/azure-sources`,
+  `infra/modules/fabric`, `infra/modules/capacity`. Local state, git-ignored. Lock file committed.
+- **Auth.** No secret in Terraform: the owner's `az login` (Azure CLI) serves azurerm, azapi and
+  fabric. SQL server is Entra-only (no SQL password in state); the storage account has shared keys
+  disabled. A git-ignored `terraform.tfvars` holds IDs and names only.
+- **Cheapest path by default.** `enable_f2 = false`; Git integration and the deployer role only when
+  their IDs are set; SQL free offer with `AutoPause`; Blob LRS.
+- **Ownership boundary.** Terraform owns workspaces and the stateful item shells (lakehouses
+  `lh_bronze`, `lh_silver`, warehouse `wh_gold`, eventhouse `eh_beds`); code items (notebooks,
+  pipelines, dataflow, eventstream, model, report, dashboard, Activator) come from Git via
+  `fabric-cicd` (U19). Eventstream stays out because its topology is code bound to item IDs.
+- **Checks.** `make tf-check`: `terraform fmt -check -recursive`, `terraform init -backend=false`,
+  `terraform validate`, `tflint --recursive` (terraform recommended preset + azurerm ruleset).
+  `make lint` runs it, so the CI `lint` job covers it. No cloud call in any check.
 
-## The choice: how pairs are scored
+## The choice: how the F2 capacity is proven
 
-### Approach A — Fellegi–Sunter weights (recommended)
+### Approach A — one root, F2 behind a toggle (taken)
 
-Each comparison has agreement levels (e.g. name JW ≥ 0.92, ≥ 0.80, lower). Per level, the weight
-is log2(m/u): m (agreement among true matches) is set a priori and written in the ADR; u
-(agreement by chance) is measured from random record pairs, which needs no ground truth. A pair's
-score is the sum; above the match threshold it is auto-matched, between the two thresholds it goes
-to review.
+`enable_f2` (default `false`) gates the `capacity` module. Proof: `apply -var enable_f2=true`, check,
+`apply -var enable_f2=false` (destroys only F2). Workspaces stay on the trial throughout.
 
-- Files: `fabric/nb_mpi.Notebook/*`, `fabric/pl_land_sources.DataPipeline/pipeline-content.json`,
-  `scripts/mpi.py`, `tests/test_mpi.py`, `tests/test_bronze.py` (pipeline activity set),
-  `docs/adr/0001-mpi-approach.md`, `docs/evidence/mpi.json`, `Makefile`, `.github/workflows/ci.yml`,
-  `README.md`, `CLAUDE.md`, `plan.md`; plus the gap files above.
-- Invariants: weights are explainable per field; a rare surname agreeing counts more than a common
-  one only if term frequency is added later (not now); thresholds sit in the notebook as constants.
-- Red check: stand test on precision and recall; fast tests on scoring of fixture pairs.
-- Cost: u estimation is one extra Spark pass; about 250 lines in the notebook.
-- Reverse: delete the notebook and its pipeline activity; U08 then has no xref.
+- Files: `infra/**`, `docker/dev.Dockerfile`, `docker-compose.yml`, `Makefile`, `.gitignore`,
+  `README.md`, `CLAUDE.md`, `plan.md`.
+- Invariants: no secret in any committed file; F2 never assigned to a workspace, so destroying it
+  breaks nothing; defaults create no billed capacity.
+- Red check: `make tf-check` (fmt, validate, tflint) in CI `lint`; `make secrets`.
+- Cost: F2 runs only between two applies, about 15 min, about $0.11.
+- Reverse: `terraform destroy`, then delete `infra/` and the Dockerfile lines.
 
-### Approach B — Hand-set points
+### Approach B — separate roots per module
 
-Fixed points per agreement (family JW ≥ 0.9: +3, exact birth date: +3, …) and two thresholds.
+Three state files; F2 has its own root and is destroyed with `terraform destroy`.
 
-- Cheapest to write, but the points have no derivation; a reviewer asks "why 3".
-- Same files, tests and reversal as A.
+- Cleaner blast radius, but three inits, three tfvars and outputs wired by hand; slower for one
+  operator.
 
-### Approach C — Deterministic rule ladder
+### Approach C — F2 hosts the workspaces
 
-Ordered rules (exact name + birth date; phone + birth date; JW names + birth year + phone; …);
-the first rule that fires matches.
+Workspaces point at F2 instead of the trial.
 
-- Easy to read, but every noise combination needs its own rule, and there is no review band by
-  score, only by rule.
-- Same files, tests and reversal as A.
-
-## Recommendation
-
-A, with both gaps resolved as proposed (phone noise added to U03 first, Silver system `ehr`).
+- Rejected: F2 must run for the whole cloud run ($0.44/h, ~$10 for a day), viewers need Pro, and
+  destroying it orphans the workspaces.
 
 ## Implementation notes (2026-10-28)
 
-- U03 noise: `phone_missing` 0.10 and `phone_changed` 0.05 measured exactly on every register
-  (lab within 0.0005). The noise-rate test now compares the last 10 digits of a phone, since
-  `+1 555 …` carries the country code.
-- Thresholds: on the full population candidate scores cluster below 12 and above 28 (log2 units);
-  `MATCH` = 20 and `REVIEW` = 12 sit in that valley and were set before running the evaluation.
-- Full population: `make mpi` takes 26 s. Blocking keeps 65,392 candidate pairs, 21,338 are merged
-  and 22 go to review. The result has 15,330 masters for 15,326 persons.
-  `make mpi-eval` gives precision 1.0 and recall 0.9998. Blocking recall is 0.9998: 4 true pairs
-  are never compared.
-- Negative control: `MATCH` = 0 merges 23,564 pairs and the stand gate test fails.
-- The result is near perfect because the noise is light: at most one error per field, and no name
-  changes. The ADR says so.
+- azapi carries the SQL database until azurerm ships the free-offer arguments. Moving it later means
+  `terraform state rm` plus `import`, since the free offer applies only at creation.
+- The dev image gains Terraform and tflint (checksums verified). A separate `infra` image target adds
+  Azure CLI 2.91.0 for the owner's `az login`; CI never builds it.
+- Open: whether an Azure free account's credit covers an F2 meter is not stated in the documents
+  read; the F2 apply/destroy may be billed to the card (about $0.11).

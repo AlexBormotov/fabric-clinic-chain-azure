@@ -14,5 +14,8 @@ __pycache__/
 .terraform/
 *.tfstate
 *.tfstate.*
+*.tfvars
+*.tfplan
+crash.log
 .DS_Store
 TASK.md
