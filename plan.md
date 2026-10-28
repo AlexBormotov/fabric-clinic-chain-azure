@@ -1,106 +1,103 @@
 ---
-id: PLAN-U11
-spec: SPEC-001 / U11
+id: PLAN-U18
+spec: SPEC-001 / U18
 owner: AlexBormotov
-status: approach A taken 2026-10-28 under the owner's standing go-ahead
-previous: PLAN-U15 (#12), PLAN-U09 (#16), PLAN-U13 (#15); see git history of this file
+status: approach A taken 2026-10-28 under the owner's standing go-ahead; built
+previous: PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16), PLAN-U13 (#15); see git history of this file
 ---
 
-# PLAN-U11 — ADT replay producer
+# PLAN-U18 — Terraform
 
-## Facts this plan rests on (read or measured 2026-10-28)
+## Facts this plan rests on (read 2026-10-28)
 
-- `data/sources/adt/events.csv`: 13,125 events (A01/A02/A03), 2024-10-01 … 2026-09-30, written in
-  event-time order with `event_id` 1…13,125. Contract: `docs/contracts/adt.yaml`.
-- Event Hubs emulator (Microsoft Learn, "Test locally with the Event Hubs emulator" and "Event Hubs
-  emulator overview", both `ms.date` 2026-08-25, read 2026-10-28):
-  - image `mcr.microsoft.com/azure-messaging/eventhubs-emulator`; MCR tags read 2026-10-28 end at
-    `2.2.1`, which is also `latest` (same manifest digest) and was built 2026-06-30 (`docker image
-    inspect`); 2.2.0 was built 2026-01-07;
-  - config mounted at `/Eventhubs_Emulator/ConfigFiles/Config.json`; one namespace, fixed name
-    `emulatorNs1`; per event hub `Name`, `PartitionCount` (1–32), `ConsumerGroups` (1–20 items);
-    `$Default` is created automatically and may not be listed (installer repo
-    `Config-schema.json`, read 2026-10-28);
-  - depends on Azurite: `BLOB_SERVER` and `METADATA_SERVER` both name the Azurite host; the
-    upstream compose runs full Azurite (blob, queue, table ports); `ACCEPT_EULA=Y` required;
-  - ports 5672 (AMQP), 9092 (Kafka), 5300 (`GET /health` → 200 `{"status":"healthy"}`); the image
-    has no shell, so a compose healthcheck inside it is impossible;
-  - connection string `Endpoint=sb://<host>;SharedAccessKeyName=RootManageSharedAccessKey;
-    SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;` (a placeholder, not a secret);
-  - entities and data do not survive a container restart; minimum retention 1 hour.
-- `azure-eventhub` on PyPI (read 2026-10-28): latest 5.15.1, uploaded 2025-10-30; pure Python
-  (pyAMQP), requires `azure-core`. `UseDevelopmentEmulator` is parsed in
-  `azure/eventhub/_client_base.py`.
-- Fabric Eventstream custom endpoint exposes an Event Hubs connection string with `EntityPath`;
-  the producer takes it unchanged (cloud run in U20).
+- **Providers (Terraform Registry API).** `microsoft/fabric` 1.14.0 (2026-09-17) is the latest.
+  `hashicorp/azurerm` latest is 5.11.0 (2026-10-23) and 5.10.0 (2026-10-15); both are younger than two
+  weeks, so 5.9.0 (2026-10-08) is pinned. `Azure/azapi` 2.13.0 (2026-09-28). `hashicorp/random` 3.9.1
+  (2026-09-11).
+- **Tools (GitHub releases).** Terraform 1.16.6 (2026-10-14; 1.17.x is younger than two weeks).
+  tflint 0.64.0 (2026-07-17; 0.65.0 is 6 days old). `tflint-ruleset-azurerm` 0.32.0 (2026-04-25; 0.33.0
+  is 3 days old). SHA-256 sums taken from the vendors' published checksum files.
+- **Fabric resources (provider docs at tag v1.14.0).** GA, no `preview` flag: `fabric_workspace`
+  (`capacity_id`), `fabric_workspace_git` (GitHub needs `git_credentials.source =
+  "ConfiguredConnection"` and a `connection_id`; `initialization_strategy` `PreferRemote` or
+  `PreferWorkspace`), `fabric_deployment_pipeline` (2–10 stages, each optionally bound to a
+  workspace), `fabric_lakehouse` (`configuration.enable_schemas`), `fabric_warehouse`,
+  `fabric_eventhouse`, `fabric_eventstream`, `fabric_workspace_role_assignment`, data source
+  `fabric_capacity` (by `display_name`). The provider authenticates with the Azure CLI (`use_cli`).
+- **Capacity.** `azurerm_fabric_capacity` in azurerm 5.9.0: `sku { name = "F2", tier = "Fabric" }`,
+  `administration_members` (UPN for users). No API or Terraform creates a trial capacity
+  (`docs/research/fabric-facts-2026-10-21.md`).
+- **Azure SQL free offer.** azurerm 5.9.0, 5.11.0 and `main` have **no** free-offer arguments on
+  `azurerm_mssql_database`. Issue hashicorp/terraform-provider-azurerm#23438 is open; PR #32055 (adds
+  `use_free_limit`, `free_limit_exhaustion_behavior`) is open; PR #32277 closed unmerged. The ARM
+  API `Microsoft.Sql/servers/databases@2025-01-01` (stable) has `useFreeLimit` (bool; the schema text still says one database
+  per subscription, the free-offer page says ten) and `freeLimitExhaustionBehavior` (`AutoPause`,
+  `BillOverUsage`), so the database is an `azapi_resource`. Free offer terms (Learn, updated
+  2026-10-12): per database 100,000 vCore-seconds, 32 GB data, 32 GB backup per month; up to 10 per
+  subscription; General Purpose serverless Gen5 2 vCores; auto-pause after 15 min idle (fixed);
+  `AutoPause` on exhaustion stops charges, `BillOverUsage` cannot be switched back; free offer only on
+  a new database; most subscription types, not Azure for Students Starter.
+- **Prices (Azure Retail Prices API, West Europe, USD).** Every Fabric capacity meter is $0.22 per
+  CU-hour, so **F2 (2 CU) is $0.44/h** pay-as-you-go, billed per second while it exists and is not
+  paused. Blob Hot LRS: $0.0196/GB-month, writes $0.054 per 10k, reads $0.0043 per 10k.
+- **Fabric trial (Learn, 2026-08-12).** Free for 60 days, F4 or F64; no Copilot, no Trusted
+  Workspace Access, no Private Link; at expiry workspaces fall back to Pro and Fabric items are kept
+  7 days. Trial count per tenant is limited.
+- **Repository.** Notebooks write `Tables/<name>` (no schema segment), so lakehouses are created
+  without schemas. Local stand names: database `clinic_billing`, containers `fhir`, `lab`, `adt`.
+  The Dockerfile pins tool versions but does not verify checksums today.
 
 ## Settings for every approach
 
-- **Code:** `src/clinic_chain/adt_replay.py` (load, schedule, send), `scripts/replay_adt.py` (CLI).
-  Arguments: `--rate` (events/s, default 50), `--late-share` (0.05), `--duplicate-share` (0.03),
-  `--limit` (first N events), `--seed`, `--connection-string` or env
-  `ADT_EVENTHUB_CONNECTION_STRING`, `--eventhub` (when the string has no `EntityPath`). Unset
-  connection string means the local emulator.
-- **Message:** body is the contract row as JSON (`event_id` int, the rest strings or null);
-  application property `replay_seq` (send order). Partition key `clinic_id`, so each clinic's events
-  stay ordered within a partition.
-- **Schedule:** events sorted by (`event_time`, `event_id`). Exactly `round(late_share * n)` events
-  are moved 1–20 positions later, always past an event with a strictly later `event_time`; exactly
-  `round(duplicate_share * n)` events get a second copy 1–20 positions after the original. Each send
-  is due at the running maximum `event_time` of the sends before it; wall time is
-  `(due - first) / acceleration` with `acceleration = event-time span * rate / (sends - 1)`, so the
-  replay keeps event-time gaps and hits the target rate on average. Due sends go out in one batch
-  per clinic.
-- **Compose:** services `eventhubs` (emulator 2.2.1, `config/eventhubs.json` mounted) and
-  `eventhubs-azurite` (Azurite 3.37.0, all services); no host ports. `make up` starts them; the
-  load script waits on `/health` before returning.
-- **Tests:** fast unit tests on the schedule (exact late and duplicate counts, every late event
-  passes a later one, copies follow originals, due times monotone, acceleration hits the rate).
-  `stand` test: replay 2,000 events at 50/s into the emulator, read back from the partition
-  positions taken before the replay, check all event ids, copies, rate from `enqueued_time` within
-  ±10% and late and duplicate shares within ±1 pp.
+- **Layout.** One root in `infra/` with modules `infra/modules/azure-sources`,
+  `infra/modules/fabric`, `infra/modules/capacity`. Local state, git-ignored. Lock file committed.
+- **Auth.** No secret in Terraform: the owner's `az login` (Azure CLI) serves azurerm, azapi and
+  fabric. SQL server is Entra-only (no SQL password in state); the storage account has shared keys
+  disabled. A git-ignored `terraform.tfvars` holds IDs and names only.
+- **Cheapest path by default.** `enable_f2 = false`; Git integration and the deployer role only when
+  their IDs are set; SQL free offer with `AutoPause`; Blob LRS.
+- **Ownership boundary.** Terraform owns workspaces and the stateful item shells (lakehouses
+  `lh_bronze`, `lh_silver`, warehouse `wh_gold`, eventhouse `eh_beds`); code items (notebooks,
+  pipelines, dataflow, eventstream, model, report, dashboard, Activator) come from Git via
+  `fabric-cicd` (U19). Eventstream stays out because its topology is code bound to item IDs.
+- **Checks.** `make tf-check`: `terraform fmt -check -recursive`, `terraform init -backend=false`,
+  `terraform validate`, `tflint --recursive` (terraform recommended preset + azurerm ruleset).
+  `make lint` runs it, so the CI `lint` job covers it. No cloud call in any check.
 
-## The choice: where late and duplicate events come from
+## The choice: how the F2 capacity is proven
 
-### Approach A — producer-side reordering of a fixed schedule (taken)
+### Approach A — one root, F2 behind a toggle (taken)
 
-The producer builds the whole send list up front with a seeded RNG, then paces it.
+`enable_f2` (default `false`) gates the `capacity` module. Proof: `apply -var enable_f2=true`, check,
+`apply -var enable_f2=false` (destroys only F2). Workspaces stay on the trial throughout.
 
-- Files: `src/clinic_chain/adt_replay.py`, `scripts/replay_adt.py`, `tests/test_replay.py`,
-  `config/eventhubs.json`, `docker-compose.yml`, `Makefile`, `.env.example`, `pyproject.toml`,
-  `uv.lock`, `README.md`, `CLAUDE.md`, `plan.md`.
-- Invariants: every source event is sent at least once; body equals the contract row; shares are
-  exact counts; same seed → same send list.
-- Red checks: fast schedule tests; the stand test.
-- Reverse: delete the new files, the two compose services and the Makefile target.
+- Files: `infra/**`, `docker/dev.Dockerfile`, `docker-compose.yml`, `Makefile`, `.gitignore`,
+  `README.md`, `CLAUDE.md`, `plan.md`.
+- Invariants: no secret in any committed file; F2 never assigned to a workspace, so destroying it
+  breaks nothing; defaults create no billed capacity.
+- Red check: `make tf-check` (fmt, validate, tflint) in CI `lint`; `make secrets`.
+- Cost: F2 runs only between two applies, about 15 min, about $0.11.
+- Reverse: `terraform destroy`, then delete `infra/` and the Dockerfile lines.
 
-### Approach B — wall-clock jitter
+### Approach B — separate roots per module
 
-Each event gets a random send delay; lateness and duplication emerge from the jitter.
+Three state files; F2 has its own root and is destroyed with `terraform destroy`.
 
-- Shares are only approximate and depend on rate, so ±1 pp is not guaranteed; rejected.
+- Cleaner blast radius, but three inits, three tfvars and outputs wired by hand; slower for one
+  operator.
 
-### Approach C — Kafka protocol (port 9092)
+### Approach C — F2 hosts the workspaces
 
-- Same schedule, `confluent-kafka` instead of `azure-eventhub`. Adds a native dependency and the
-  emulator supports only Kafka producer and consumer APIs; no gain over AMQP. Rejected.
+Workspaces point at F2 instead of the trial.
 
-## Implementation notes
+- Rejected: F2 must run for the whole cloud run ($0.44/h, ~$10 for a day), viewers need Pro, and
+  destroying it orphans the workspaces.
 
-- Stand test (2,000 events, 50/s, late 5%, duplicates 3%, seed 7), 2026-10-28: producer 2,060
-  sends in 41.19 s (49.99/s, acceleration 225,959x); consumer received 2,000 distinct events plus
-  60 copies, bodies equal to the contract rows, late share 0.0500, duplicate share 0.0300, rate
-  from `enqueued_time` 50.55/s (+1.1%). Test 50 s including emulator start.
-- Full file, schedule only: 13,125 events → 13,519 sends (656 late, 394 copies) built in 0.11 s;
-  at 50/s the replay lasts 270 s.
-- Negative control: allowing an anchor with an equal event time (`>=` for `>`) turns two fast
-  tests red (measured late share 0.046 ≠ 0.05; a "late" event that no later event precedes).
-  Restored; green.
-- The stand test ran against the emulator alone (`docker compose up eventhubs-azurite eventhubs`):
-  this worktree holds only `data/sources/adt/events.csv`, so `make up` (which also loads billing
-  and FHIR) and the other `stand` tests run in CI only.
-- No CI change: the `stand` job already runs `make up` and `make test-stand`, which now start the
-  emulator and include the replay test (about 50 s more).
-- In a git worktree `make secrets` scans 0 commits (`.git` is a file pointing outside the mount);
-  the changed paths were scanned with `gitleaks dir` instead: no leaks. The emulator's
-  `SAS_KEY_VALUE` placeholder needs no allowlist.
+## Implementation notes (2026-10-28)
+
+- azapi carries the SQL database until azurerm ships the free-offer arguments. Moving it later means
+  `terraform state rm` plus `import`, since the free offer applies only at creation.
+- The dev image gains Terraform and tflint (checksums verified). A separate `infra` image target adds
+  Azure CLI 2.91.0 for the owner's `az login`; CI never builds it.
+- Open: whether an Azure free account's credit covers an F2 meter is not stated in the documents
+  read; the F2 apply/destroy may be billed to the card (about $0.11).

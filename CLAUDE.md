@@ -51,5 +51,8 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make replay` — after `make up`: replay `data/sources/adt/events.csv` into the Event Hubs
   emulator (`ARGS='--limit 2000 --rate 20'`); `ADT_EVENTHUB_CONNECTION_STRING` points it at an
   Eventstream custom endpoint instead
+- `make tf-check` — `terraform fmt -check`, `validate` (after `init -backend=false`) and `tflint` on
+  `infra/`; part of `make lint`. Never `plan` or `apply` against a subscription from an agent: the
+  owner applies from `docker compose run --rm infra` after `az login` (`infra/README.md`)
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`
