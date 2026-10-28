@@ -1,0 +1,54 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "payer_mix_by_payer",
+  "position": {
+    "x": 20,
+    "y": 190,
+    "z": 1,
+    "width": 880,
+    "height": 500
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_payer"
+                    }
+                  },
+                  "Property": "payer"
+                }
+              },
+              "queryRef": "dim_payer.payer",
+              "nativeQueryRef": "payer"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_claim"
+                    }
+                  },
+                  "Property": "payer_mix"
+                }
+              },
+              "queryRef": "fact_claim.payer_mix",
+              "nativeQueryRef": "payer_mix"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

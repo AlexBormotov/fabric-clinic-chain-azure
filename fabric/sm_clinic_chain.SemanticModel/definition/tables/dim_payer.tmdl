@@ -1,0 +1,14 @@
+/// Payers, NO_INSURANCE included.
+table dim_payer
+
+	column payer
+		dataType: string
+		summarizeBy: none
+		sourceColumn: payer
+
+	partition dim_payer = entity
+		mode: directLake
+		source
+			entityName: dim_payer
+			schemaName: gold
+			expressionSource: DatabaseQuery

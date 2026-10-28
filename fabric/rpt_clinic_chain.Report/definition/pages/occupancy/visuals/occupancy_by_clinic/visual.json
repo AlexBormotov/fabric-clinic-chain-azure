@@ -1,0 +1,54 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "occupancy_by_clinic",
+  "position": {
+    "x": 20,
+    "y": 190,
+    "z": 1,
+    "width": 880,
+    "height": 500
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_clinic"
+                    }
+                  },
+                  "Property": "clinic_name"
+                }
+              },
+              "queryRef": "dim_clinic.clinic_name",
+              "nativeQueryRef": "clinic_name"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_bed_day"
+                    }
+                  },
+                  "Property": "occupancy_rate"
+                }
+              },
+              "queryRef": "fact_bed_day.occupancy_rate",
+              "nativeQueryRef": "occupancy_rate"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

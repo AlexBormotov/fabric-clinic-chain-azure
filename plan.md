@@ -1,103 +1,109 @@
 ---
-id: PLAN-U18
-spec: SPEC-001 / U18
+id: PLAN-U10
+spec: SPEC-001 / U10
 owner: AlexBormotov
-status: approach A taken 2026-10-28 under the owner's standing go-ahead; built
-previous: PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16), PLAN-U13 (#15); see git history of this file
+status: approach A taken 2026-10-28 under the owner's standing go-ahead
+previous: PLAN-U18 (#13), PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16); see git history of this file
 ---
 
-# PLAN-U18 — Terraform
+# PLAN-U10 — Semantic model and report
 
-## Facts this plan rests on (read 2026-10-28)
+## Facts this plan rests on
 
-- **Providers (Terraform Registry API).** `microsoft/fabric` 1.14.0 (2026-09-17) is the latest.
-  `hashicorp/azurerm` latest is 5.11.0 (2026-10-23) and 5.10.0 (2026-10-15); both are younger than two
-  weeks, so 5.9.0 (2026-10-08) is pinned. `Azure/azapi` 2.13.0 (2026-09-28). `hashicorp/random` 3.9.1
-  (2026-09-11).
-- **Tools (GitHub releases).** Terraform 1.16.6 (2026-10-14; 1.17.x is younger than two weeks).
-  tflint 0.64.0 (2026-07-17; 0.65.0 is 6 days old). `tflint-ruleset-azurerm` 0.32.0 (2026-04-25; 0.33.0
-  is 3 days old). SHA-256 sums taken from the vendors' published checksum files.
-- **Fabric resources (provider docs at tag v1.14.0).** GA, no `preview` flag: `fabric_workspace`
-  (`capacity_id`), `fabric_workspace_git` (GitHub needs `git_credentials.source =
-  "ConfiguredConnection"` and a `connection_id`; `initialization_strategy` `PreferRemote` or
-  `PreferWorkspace`), `fabric_deployment_pipeline` (2–10 stages, each optionally bound to a
-  workspace), `fabric_lakehouse` (`configuration.enable_schemas`), `fabric_warehouse`,
-  `fabric_eventhouse`, `fabric_eventstream`, `fabric_workspace_role_assignment`, data source
-  `fabric_capacity` (by `display_name`). The provider authenticates with the Azure CLI (`use_cli`).
-- **Capacity.** `azurerm_fabric_capacity` in azurerm 5.9.0: `sku { name = "F2", tier = "Fabric" }`,
-  `administration_members` (UPN for users). No API or Terraform creates a trial capacity
-  (`docs/research/fabric-facts-2026-10-21.md`).
-- **Azure SQL free offer.** azurerm 5.9.0, 5.11.0 and `main` have **no** free-offer arguments on
-  `azurerm_mssql_database`. Issue hashicorp/terraform-provider-azurerm#23438 is open; PR #32055 (adds
-  `use_free_limit`, `free_limit_exhaustion_behavior`) is open; PR #32277 closed unmerged. The ARM
-  API `Microsoft.Sql/servers/databases@2025-01-01` (stable) has `useFreeLimit` (bool; the schema text still says one database
-  per subscription, the free-offer page says ten) and `freeLimitExhaustionBehavior` (`AutoPause`,
-  `BillOverUsage`), so the database is an `azapi_resource`. Free offer terms (Learn, updated
-  2026-10-12): per database 100,000 vCore-seconds, 32 GB data, 32 GB backup per month; up to 10 per
-  subscription; General Purpose serverless Gen5 2 vCores; auto-pause after 15 min idle (fixed);
-  `AutoPause` on exhaustion stops charges, `BillOverUsage` cannot be switched back; free offer only on
-  a new database; most subscription types, not Azure for Students Starter.
-- **Prices (Azure Retail Prices API, West Europe, USD).** Every Fabric capacity meter is $0.22 per
-  CU-hour, so **F2 (2 CU) is $0.44/h** pay-as-you-go, billed per second while it exists and is not
-  paused. Blob Hot LRS: $0.0196/GB-month, writes $0.054 per 10k, reads $0.0043 per 10k.
-- **Fabric trial (Learn, 2026-08-12).** Free for 60 days, F4 or F64; no Copilot, no Trusted
-  Workspace Access, no Private Link; at expiry workspaces fall back to Pro and Fabric items are kept
-  7 days. Trial count per tenant is limited.
-- **Repository.** Notebooks write `Tables/<name>` (no schema segment), so lakehouses are created
-  without schemas. Local stand names: database `clinic_billing`, containers `fhir`, `lab`, `adt`.
-  The Dockerfile pins tool versions but does not verify checksums today.
+All read 2026-10-28.
 
-## Settings for every approach
+- **PBIP semantic model folder** (Learn "Power BI Desktop project semantic model folder", dated
+  2026-09-23): `definition.pbism` is required; `version` 4.0 or above allows TMDL in a `definition\`
+  folder instead of `model.bim`; `.platform` links the item to Fabric Git integration.
+- **PBIP report folder** (Learn "Power BI Desktop project report folder", dated 2026-09-23): PBIR is
+  generally available and the default; Fabric Git integration exports PBIR. `definition.pbir`
+  (`version` 4.0, `datasetReference.byPath`) and a `definition\` folder with `version.json`,
+  `report.json`, `pages\pages.json`, `pages\<page>\page.json`, `visuals\<visual>\visual.json`.
+  Git integration always writes `byPath` when model and report share a workspace.
+- **PBIR schemas** (github.com/microsoft/json-schemas, `fabric/item/report/definition`): required
+  keys measured from `page/2.0.0`, `report/3.0.0`, `visualContainer/2.4.0`, `pagesMetadata/1.0.0`,
+  `versionMetadata/1.0.0`, `definitionProperties/2.0.0`; `semanticModel/definitionProperties/1.0.0`.
+- **Direct Lake TMDL** (Learn "Develop Direct Lake semantic models", dated 2026-09-02):
+  `compatibilityLevel` 1604 or higher, partitions with `mode: directLake`, data source in a shared
+  expression. Direct Lake on OneLake uses the `AzureStorage.DataLake` connector against the item's
+  OneLake location and never falls back to DirectQuery. The URL form
+  `https://onelake.dfs.fabric.microsoft.com/<workspace id>/<item id>` with
+  `[HierarchicalNavigation=true]` is from Tabular Editor's docs (dated 2026-10-12); Learn shows it
+  only as a screenshot.
+- **TMDL syntax** (Learn "Tabular Model Definition Language", dated 2023-12-27, updated 2026-06-11):
+  tab indentation, three levels (declaration, properties, multi-line expression); `role` with
+  `modelPermission` and `tablePermission <table> = <DAX>`; `relationship` with
+  `fromColumn`/`toColumn`; one file per table and per role, one for all relationships and all
+  expressions.
+- **Direct Lake security** (Learn "Integrate Direct Lake security", dated 2025-09-22, updated
+  2026-09-09): model RLS is not enforced for users with Write on the model (workspace Admin,
+  Member, Contributor); with SSO, users who can read the source can bypass model RLS there; the
+  recommendation for model-only rules is a fixed-identity cloud connection.
+- **Same Delta table twice in one Direct Lake model** works in Desktop but has open service errors
+  (Chris Webb's blog, 2024-09-29 and 2026-04-05). Not used.
+- **Python TMDL parsers on PyPI**: `tmdl` 0.0.1 (single release, no documentation), `pytmdl`
+  0.1.1a1 (alpha). Neither suitable; a structural parser of about 150 lines is written instead.
 
-- **Layout.** One root in `infra/` with modules `infra/modules/azure-sources`,
-  `infra/modules/fabric`, `infra/modules/capacity`. Local state, git-ignored. Lock file committed.
-- **Auth.** No secret in Terraform: the owner's `az login` (Azure CLI) serves azurerm, azapi and
-  fabric. SQL server is Entra-only (no SQL password in state); the storage account has shared keys
-  disabled. A git-ignored `terraform.tfvars` holds IDs and names only.
-- **Cheapest path by default.** `enable_f2 = false`; Git integration and the deployer role only when
-  their IDs are set; SQL free offer with `AutoPause`; Blob LRS.
-- **Ownership boundary.** Terraform owns workspaces and the stateful item shells (lakehouses
-  `lh_bronze`, `lh_silver`, warehouse `wh_gold`, eventhouse `eh_beds`); code items (notebooks,
-  pipelines, dataflow, eventstream, model, report, dashboard, Activator) come from Git via
-  `fabric-cicd` (U19). Eventstream stays out because its topology is code bound to item IDs.
-- **Checks.** `make tf-check`: `terraform fmt -check -recursive`, `terraform init -backend=false`,
-  `terraform validate`, `tflint --recursive` (terraform recommended preset + azurerm ruleset).
-  `make lint` runs it, so the CI `lint` job covers it. No cloud call in any check.
+## Approaches
 
-## The choice: how the F2 capacity is proven
+- **A (taken).** Direct Lake on OneLake over the Gold Warehouse tables (`schemaName: gold`),
+  hand-written TMDL and PBIR in `fabric/`. Facts without PHI; `dim_patient` stays out. Measures
+  named exactly as the metrics in `GLOSSARY.md`. Dynamic RLS: one role `clinic` filters
+  `dim_clinic` to the clinics mapped to `USERPRINCIPALNAME()` in a new Gold table
+  `gold.user_clinic`, which survives `gold.reload` and is filled per environment in U17 (never
+  committed).
+- B. Direct Lake on SQL over the Warehouse endpoint. Rejected: the metric views and U16's
+  CLS/DDM would push queries to DirectQuery fallback; the spec names Direct Lake on OneLake.
+- C. Static RLS, one role per clinic. Rejected: the model changes whenever a clinic is added, and
+  the spec asks for a single `clinic` role mapped by user.
 
-### Approach A — one root, F2 behind a toggle (taken)
+## Files
 
-`enable_f2` (default `false`) gates the `capacity` module. Proof: `apply -var enable_f2=true`, check,
-`apply -var enable_f2=false` (destroys only F2). Workspaces stay on the trial throughout.
+- `fabric/sm_clinic_chain.SemanticModel/`: `.platform`, `definition.pbism`, `definition/`
+  (`database.tmdl`, `model.tmdl`, `expressions.tmdl`, `relationships.tmdl`, `tables/*.tmdl`,
+  `roles/clinic.tmdl`).
+- `fabric/rpt_clinic_chain.Report/`: `.platform`, `definition.pbir`, `definition/` (three pages:
+  occupancy, quality, economics).
+- `sql/gold/30_access.sql` (`gold.user_clinic`).
+- `src/clinic_chain/tmdl.py`, `tests/test_semantic_model.py`.
+- `README.md`, `plan.md`.
 
-- Files: `infra/**`, `docker/dev.Dockerfile`, `docker-compose.yml`, `Makefile`, `.gitignore`,
-  `README.md`, `CLAUDE.md`, `plan.md`.
-- Invariants: no secret in any committed file; F2 never assigned to a workspace, so destroying it
-  breaks nothing; defaults create no billed capacity.
-- Red check: `make tf-check` (fmt, validate, tflint) in CI `lint`; `make secrets`.
-- Cost: F2 runs only between two applies, about 15 min, about $0.11.
-- Reverse: `terraform destroy`, then delete `infra/` and the Dockerfile lines.
+## Invariants and the checks that go red
 
-### Approach B — separate roots per module
+All in `tests/test_semantic_model.py`, fast (`make test`):
 
-Three state files; F2 has its own root and is destroyed with `terraform destroy`.
+- TMDL parses; every table has one `directLake` entity partition on `gold.<table>` through a
+  declared expression (`test_model_parses_into_direct_lake_tables`).
+- Every model column is a column of that Gold table, with a compatible type
+  (`test_model_columns_exist_in_gold`).
+- No PHI: no column sourced from `dim_patient`'s PHI columns (its columns minus the key, sex,
+  home clinic and record count) and no column name matching name/birth/phone/address/postal/SSN
+  patterns outside an allowlist (`test_model_has_no_phi_columns`).
+- Every metric in the `GLOSSARY.md` table has a measure of the same name
+  (`test_every_glossary_metric_has_a_measure`).
+- Every `table[column]` reference in measures and role filters resolves
+  (`test_dax_references_resolve`); relationships join existing columns
+  (`test_relationships_join_model_columns`).
+- Role `clinic` filters `dim_clinic` through `user_clinic` and `USERPRINCIPALNAME()`
+  (`test_clinic_role_filters_by_user`).
+- The report binds by path to the model, has the three contour pages, and every field it shows
+  exists in the model (`test_report_fields_exist_in_the_model`).
+- Every `fabric/*/.platform` has a distinct uuid4 `logicalId` (`test_platform_logical_ids`).
 
-- Cleaner blast radius, but three inits, three tfvars and outputs wired by hand; slower for one
-  operator.
+Negative control, run 2026-10-28: a `dim_patient` table with `given_name` added to the model made
+`test_model_has_no_phi_columns` fail (`('dim_patient', 'given_name')`) while the other nine tests
+passed; the file was then removed.
 
-### Approach C — F2 hosts the workspaces
+Measure values are checked against U09's reference in the cloud run (U20), as the spec says.
 
-Workspaces point at F2 instead of the trial.
+## Known limit handed to U17
 
-- Rejected: F2 must run for the whole cloud run ($0.44/h, ~$10 for a day), viewers need Pro, and
-  destroying it orphans the workspaces.
+`readmission_30d_rate` counts a readmission at any clinic. Under the `clinic` role, RLS also hides
+the other clinics' stays, so a clinic user sees only same-clinic readmissions. The fix is a
+precomputed `readmitted_30d` flag on `gold.fact_stay`; it needs a stand run of `make gold` and the
+U09 comparison, so it is left to U17 (which owns RLS) rather than changed here without the stand.
 
-## Implementation notes (2026-10-28)
+## Reversal
 
-- azapi carries the SQL database until azurerm ships the free-offer arguments. Moving it later means
-  `terraform state rm` plus `import`, since the free offer applies only at creation.
-- The dev image gains Terraform and tflint (checksums verified). A separate `infra` image target adds
-  Azure CLI 2.91.0 for the owner's `az login`; CI never builds it.
-- Open: whether an Azure free account's credit covers an F2 meter is not stated in the documents
-  read; the F2 apply/destroy may be billed to the card (about $0.11).
+Revert the PR. The Fabric items disappear from Git; `gold.user_clinic` is dropped by hand
+(`DROP TABLE gold.user_clinic`), as no reload drops it.
