@@ -41,6 +41,8 @@ jobs:
       - run: make bronze
       - run: make silver
       - run: make mpi
+      - run: make gold
+      - run: make bed-history
       - run: make quality
       - run: make test-stand
 

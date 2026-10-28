@@ -25,6 +25,9 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make bronze` | land the stand into `data/lh_bronze/Files/` and build Bronze on local Spark (~3 min) |
 | `make silver` | build Silver from Bronze into `data/lh_silver/` and print the reconciliation (~2.5 min) |
 | `make mpi` / `make mpi-eval` | match patient records into `patient_xref` / score it against ground truth |
+| `make gold` | copy Silver into the stand's SQL Server and build the Gold star schema (~30 s) |
+| `make bed-history` | apply new ADT events to the SCD2 bed state history in `bed_state_history` |
+
 | `make quality` | Soda data contracts on Silver; fails when a check fails |
 | `make secrets` | gitleaks over the git history |
 
@@ -133,6 +136,39 @@ writes `patient_xref` (system, local patient ID → master patient ID) and `pati
 `make mpi-eval` scores the result against the generator's ground truth, which never reaches Fabric.
 Results are in [`docs/evidence/mpi.json`](docs/evidence/mpi.json). CI fails below precision 0.98 or
 recall 0.95.
+
+## Gold
+
+The Gold star schema is a Fabric Warehouse built in T-SQL ([`sql/gold/`](sql/gold/)): dimensions
+date, clinic, ward, bed, patient (one row per master patient), payer and diagnosis; facts encounter,
+bed-day (occupied hours per stay segment and day), claim, lab result and ED visit, all within the
+2024-10-01 … 2026-09-30 window. The procedure `gold.reload` truncates and refills it from a `silver`
+schema, which is a set of views over the Lakehouse in Fabric and copied tables locally. The T-SQL
+stays inside what both Fabric Warehouse and SQL Server accept
+([ADR 0002](docs/adr/0002-lakehouse-warehouse.md)). `make gold` builds it on the stand's SQL Server.
+Tests check:
+
+- that Gold reconciles with Silver: rows per fact inside the window, and bed hours recomputed from
+  ADT events in Spark;
+- that keys are unique and every fact key resolves to a dimension.
+
+### Metrics
+
+The eight metrics are defined in [`GLOSSARY.md`](GLOSSARY.md) and exposed as Gold views
+`gold.metric_summary` and `gold.metric_payer_mix`, per clinic and for the chain.
+`make metric-reference` computes the same metrics with pandas straight from `data/sources/` into
+[`docs/evidence/metric-reference.json`](docs/evidence/metric-reference.json); a stand test requires
+Gold to match it to a relative 1e-6.
+
+## Bed state history
+
+`nb_bed_history` runs after `nb_silver` and writes `bed_state_history`: one row per bed and interval
+of constant state (free, or occupied by one stay), with `valid_from`, `valid_to` (NULL on the
+current row), `stay_id` and `adt_patient_id`. Events are deduplicated by `event_id`; those not yet
+in the `bed_event` log are new. The beds they touch are recomputed from all their events and
+applied with one Delta MERGE, so a late, duplicate or out-of-order event yields the same history as
+an in-order run. Tests cover each case; on the full population the history has no gaps or overlaps
+and its occupied intervals equal the stay segments in `adt_event`.
 
 ## Data quality
 

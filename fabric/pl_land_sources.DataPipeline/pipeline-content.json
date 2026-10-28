@@ -499,6 +499,33 @@
         }
       },
       {
+        "name": "run_nb_bed_history",
+        "type": "TridentNotebook",
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "dependsOn": [
+          {
+            "activity": "run_nb_silver",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "notebookId": "00000000-0000-0000-0000-000000000000",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "run_id": {
+              "value": "@pipeline().RunId",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
         "name": "run_nb_quality",
         "type": "TridentNotebook",
         "policy": {
