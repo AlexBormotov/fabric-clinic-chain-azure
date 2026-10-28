@@ -3,7 +3,7 @@ id: PLAN-U18
 spec: SPEC-001 / U18
 owner: AlexBormotov
 status: approach A taken 2026-10-28 under the owner's standing go-ahead; built
-previous: PLAN-U07 (approach A, landed in #10; see git history of this file)
+previous: PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16), PLAN-U13 (#15); see git history of this file
 ---
 
 # PLAN-U18 — Terraform

@@ -28,7 +28,7 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
   tests (`slow` marker, excluded from `make test`, ~10 min)
 - `make sources` — derive billing, lab, ADT, SharePoint and ground truth from `data/raw/fhir/` into
   `data/sources/`; schemas in `docs/contracts/`
-- `make up` — start the local source stand (SQL Server 2022, Azurite) and load `data/sources/` and
+- `make up` — start the local source stand (SQL Server 2022, Azurite, Event Hubs emulator) and load `data/sources/` and
   `data/raw/fhir/` into it; the SA password is generated into the git-ignored `.env`;
   `make test-stand` — read-back tests (`stand` marker, excluded from `make test`); `make down`
 - `make bronze` — after `make up`: land the stand into `data/lh_bronze/Files/landing/` and run
@@ -39,6 +39,18 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make mpi` — after `make silver`: run `fabric/nb_mpi.Notebook/notebook-content.py` (patient
   matching into `patient_xref`); `make mpi-eval` — precision/recall vs ground truth into
   `docs/evidence/mpi.json`
+- `make gold` — after `make up` and `make mpi`: copy Silver into SQL Server (`clinic_gold`, Fabric
+  collation) and run `sql/gold/` (T-SQL kept to the Fabric Warehouse surface; ADR 0002)
+- `make metric-reference` — metric reference values from `data/sources/` (pandas, not Gold) into
+  `docs/evidence/metric-reference.json`; definitions in `GLOSSARY.md`
+- `make bed-history` — after `make silver`: run `fabric/nb_bed_history.Notebook/notebook-content.py`
+  (SCD2 `bed_state_history` from `adt_event`, incremental via the `bed_event` log)
+- `make quality` — after `make silver`: run `fabric/nb_quality.Notebook/notebook-content.py`
+  (Soda v4 contracts) on `data/lh_silver/Tables/`; exits non-zero on a failed check. The Soda pins
+  in `pyproject.toml` and the notebook's `%pip` cell must match (a test enforces it)
+- `make replay` — after `make up`: replay `data/sources/adt/events.csv` into the Event Hubs
+  emulator (`ARGS='--limit 2000 --rate 20'`); `ADT_EVENTHUB_CONNECTION_STRING` points it at an
+  Eventstream custom endpoint instead
 - `make tf-check` — `terraform fmt -check`, `validate` (after `init -backend=false`) and `tflint` on
   `infra/`; part of `make lint`. Never `plan` or `apply` against a subscription from an agent: the
   owner applies from `docker compose run --rm infra` after `az login` (`infra/README.md`)

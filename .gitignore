@@ -19,3 +19,5 @@ __pycache__/
 crash.log
 .DS_Store
 TASK.md
+# Agent worktrees (Claude Code)
+.claude/worktrees/

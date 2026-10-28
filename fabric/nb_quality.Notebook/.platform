@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "nb_quality",
+    "description": "Verify Soda data contracts on Silver: keys, value ranges and referential integrity"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "41d5d5af-feb2-44bc-89f1-13cec94503f1"
+  }
+}
