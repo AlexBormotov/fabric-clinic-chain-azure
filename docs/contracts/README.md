@@ -7,8 +7,9 @@ file lists, per table, the file it lives in, the primary key and the columns in 
 - CSV: UTF-8, comma-separated, header row, empty field = null. Excel: header row on each sheet;
   `file#sheet` names the sheet.
 - `nullable` defaults to false.
-- Patient demographics are noisy by design (typos, day/month swaps, phone formats, duplicate
-  records). `ground_truth` is the only place where local patient IDs meet the person they belong to.
+- Patient demographics are noisy by design (typos, day/month swaps, phone formats, missing or
+  outdated phones, duplicate records). `ground_truth` is the only place where local patient IDs meet
+  the person they belong to.
 - Billing is loaded into SQL Server (U04) with `billing.sql`; a test keeps it in step with
   `billing.yaml`.
 

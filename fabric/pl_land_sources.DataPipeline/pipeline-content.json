@@ -1,6 +1,6 @@
 {
   "properties": {
-    "description": "Land every batch source unchanged into lh_bronze Files/landing/<system>/<run id>/, then build Bronze and Silver. IDs are placeholders resolved by parameter.yml at deploy (U19).",
+    "description": "Land every batch source unchanged into lh_bronze Files/landing/<system>/<run id>/, then build Bronze, Silver and the master patient index. IDs are placeholders resolved by parameter.yml at deploy (U19).",
     "activities": [
       {
         "name": "copy_billing_patient_account",
@@ -455,6 +455,33 @@
         "dependsOn": [
           {
             "activity": "run_nb_bronze",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "notebookId": "00000000-0000-0000-0000-000000000000",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "run_id": {
+              "value": "@pipeline().RunId",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "run_nb_mpi",
+        "type": "TridentNotebook",
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "dependsOn": [
+          {
+            "activity": "run_nb_silver",
             "dependencyConditions": [
               "Succeeded"
             ]

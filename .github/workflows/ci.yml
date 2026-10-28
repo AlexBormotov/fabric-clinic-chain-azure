@@ -40,6 +40,7 @@ jobs:
       - run: make up
       - run: make bronze
       - run: make silver
+      - run: make mpi
       - run: make test-stand
 
   secrets:

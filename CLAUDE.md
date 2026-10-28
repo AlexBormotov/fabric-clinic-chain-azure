@@ -36,5 +36,8 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
   through `clinic_chain.spark.notebook()`
 - `make silver` — after `make bronze`: run `fabric/nb_silver.Notebook/notebook-content.py` from
   `data/lh_bronze/Tables/` into `data/lh_silver/Tables/` and print the reconciliation
+- `make mpi` — after `make silver`: run `fabric/nb_mpi.Notebook/notebook-content.py` (patient
+  matching into `patient_xref`); `make mpi-eval` — precision/recall vs ground truth into
+  `docs/evidence/mpi.json`
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`

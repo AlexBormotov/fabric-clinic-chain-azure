@@ -111,11 +111,13 @@ def test_pipeline_lands_every_source_then_runs_the_notebook():
         "refresh_df_sharepoint",
         "run_nb_bronze",
         "run_nb_silver",
+        "run_nb_mpi",
     }
     [notebook] = [a for a in activities if a["name"] == "run_nb_bronze"]
     assert {d["activity"] for d in notebook["dependsOn"]} == names - {
         "run_nb_bronze",
         "run_nb_silver",
+        "run_nb_mpi",
     }
     assert notebook["typeProperties"]["parameters"]["run_id"]["value"] == "@pipeline().RunId"
     assert (ROOT / "fabric" / "nb_bronze.Notebook" / "notebook-content.py").exists()

@@ -167,7 +167,8 @@ PATIENT_COLUMNS = [
     ("phone", "string", False),
     ("postal_code", "string", False),
 ]
-# patient_record system -> (Bronze table, local patient ID column); FHIR patients come from bundles.
+# patient_record system -> (Bronze table, local patient ID column); EHR (FHIR) patients come from
+# bundles.
 PATIENT_SOURCES = {
     "lab": ("lab_patients", "lab_patient_id"),
     "adt": ("adt_patients", "adt_patient_id"),
@@ -283,7 +284,7 @@ def fhir_frame(resources: DataFrame, resource_type: str) -> DataFrame:
         official = first(F.filter(r["name"], lambda n: n.use == "official"))
         name = F.coalesce(official, first(r["name"]))
         return df.select(
-            F.lit("fhir").alias("system"),
+            F.lit("ehr").alias("system"),
             r.id.alias("local_patient_id"),
             "clinic_id",
             first(name.given).alias("given_name"),
@@ -445,7 +446,7 @@ def run(spark: SparkSession, run_id: str, bronze_root: str, silver_root: str) ->
             "fhir_bundle:Patient",
             census.get("Patient", 0),
             conform(fhir_frame(resources, "Patient"), patient),
-            F.col("system") == "fhir",
+            F.col("system") == "ehr",
         )
     ]
     for resource_type, columns in FHIR_COLUMNS.items():

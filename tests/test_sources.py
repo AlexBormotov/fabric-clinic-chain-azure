@@ -104,6 +104,10 @@ def noise_rates(register: list[dict], truth: dict[str, dict]) -> dict[str, float
     def differs(field):
         return sum(r[field] != truth[r["person_id"]][field] for r in register) / n
 
+    def digits(phone):
+        return re.sub(r"\D", "", phone)[-10:]  # "+1 555 ..." carries the country code
+
+    phones = [(r["phone"], truth[r["person_id"]]["phone"]) for r in register]
     named = sum(
         (r["given_name"], r["family_name"])
         != (truth[r["person_id"]]["given_name"], truth[r["person_id"]]["family_name"])
@@ -112,7 +116,9 @@ def noise_rates(register: list[dict], truth: dict[str, dict]) -> dict[str, float
     return {
         "name_typo": named / n,
         "dob_day_month_swap": differs("birth_date"),
-        "phone_format": differs("phone"),
+        "phone_format": sum(p != t and digits(p) == digits(t) for p, t in phones) / n,
+        "phone_missing": sum(p == "" != t for p, t in phones) / n,
+        "phone_changed": sum(p != "" and digits(p) != digits(t) for p, t in phones) / n,
         "duplicate": (n - people) / people,
     }
 
@@ -126,6 +132,8 @@ def test_noise_functions_always_change_the_value():
     assert not noise.can_swap_day_month("1962-07-20")
     assert re.fullmatch(r"\D*555\D*153\D*4215", noise.reformat_phone("555-153-4215", rng))
     assert noise.reformat_phone("555-153-4215", rng) != "555-153-4215"
+    assert re.fullmatch(r"555-\d{3}-\d{4}", noise.other_phone("555-153-4215", rng))
+    assert noise.other_phone("555-153-4215", rng) != "555-153-4215"
 
 
 def test_register_noise_rates_are_exact():

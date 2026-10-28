@@ -238,10 +238,10 @@ def test_types_are_cast_and_timestamps_are_utc(session, silver):
 
 def test_patient_records_are_standardized_not_matched(session, silver):
     rows = {r.system: r for r in read(session, silver[0] / "patient_record").collect()}
-    assert set(rows) == {"fhir", "lab", "adt", "billing"}
+    assert set(rows) == {"ehr", "lab", "adt", "billing"}
     for system in ("lab", "adt", "billing"):
         assert (rows[system].given_name, rows[system].phone) == ("Ann Marie", "5558567458")
-    fhir = rows["fhir"]
+    fhir = rows["ehr"]
     assert (fhir.local_patient_id, fhir.clinic_id, fhir.given_name, fhir.family_name) == (
         "p1",
         "boston",

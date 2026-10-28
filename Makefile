@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval secrets up down
 
 setup:
 	docker compose build dev
@@ -42,6 +42,14 @@ bronze:
 # Needs `make bronze`: builds data/lh_silver/ and prints the Bronze -> Silver reconciliation.
 silver:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/silver.py'
+
+# Needs `make silver`: matches patient records into data/lh_silver/Tables/patient_xref.
+mpi:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/mpi.py'
+
+# Needs `make mpi`: precision and recall against ground truth into docs/evidence/mpi.json.
+mpi-eval:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/mpi.py --eval'
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .
