@@ -1,6 +1,7 @@
 """U16 PHI protection in Gold. The fast tests read `sql/gold/`; `stand` tests query the Gold built
-by `make gold` as two local logins, one per role. Fabric has no logins (Entra identities only), so
-the logins exist only here, in test setup."""
+by `make gold` as three local logins: one per role, and one with only db_datareader, which stands
+in for a Fabric Viewer (ReadData). Fabric has no logins (Entra identities only), so the logins
+exist only here, in test setup."""
 
 import re
 import secrets
@@ -19,7 +20,8 @@ GOLD = Path(__file__).resolve().parents[1] / "sql" / "gold"
 # clear: the analysis needs them, and without the patient's demographics they do not identify.
 PHI = {"dim_patient": {"given_name", "family_name", "birth_date", "phone", "postal_code"}}
 NOT_PHI = {"dim_patient": {"master_patient_id", "sex", "home_clinic_id", "source_records"}}
-DENIED = {"dim_patient": {"phone"}}
+# Column DENY is the access control: a mask alone leaks through predicates (WHERE birth_date = ...).
+DENIED = PHI
 MASKED_NAME = re.compile(r"^.xxxx$")
 
 
@@ -95,14 +97,20 @@ def _drop(cur, login: str) -> None:
     cur.execute(f"IF SUSER_ID('{login}') IS NOT NULL DROP LOGIN {login}")
 
 
+ROLES = {
+    "u16_reader": "gold_reader",
+    "u16_phi_reader": "gold_phi_reader",
+    "u16_datareader": "db_datareader",
+}
+
+
 @pytest.fixture(scope="module")
 def logins():
-    """login name → (password, role) for one reader per role; dropped afterwards."""
-    wanted = {"u16_reader": "gold_reader", "u16_phi_reader": "gold_phi_reader"}
+    """login name → password, one login per entry in ROLES; dropped afterwards."""
     created = {}
     with stand.sql(gold.DATABASE) as conn:
         cur = conn.cursor()
-        for login, role in wanted.items():
+        for login, role in ROLES.items():
             password = _password()
             _drop(cur, login)
             cur.execute(f"CREATE LOGIN {login} WITH PASSWORD = '{password}', CHECK_POLICY = OFF")
@@ -128,9 +136,9 @@ PATIENT = (
 
 
 @pytest.mark.stand
-def test_reader_sees_phi_masked(logins):
+def test_datareader_sees_phi_masked(logins):
     clear = rows(PATIENT)
-    masked = rows(PATIENT, "u16_reader", logins["u16_reader"])
+    masked = rows(PATIENT, "u16_datareader", logins["u16_datareader"])
     assert [r[0] for r in masked] == [r[0] for r in clear]
     for (_, given, family, born, postal), (_, c_given, c_family, _, c_postal) in zip(
         masked, clear, strict=True
@@ -142,17 +150,29 @@ def test_reader_sees_phi_masked(logins):
 
 
 @pytest.mark.stand
-def test_reader_is_denied_cls_columns(logins):
-    for query in ("SELECT phone FROM gold.dim_patient", "SELECT * FROM gold.dim_patient"):
-        with pytest.raises(Exception, match="SELECT permission was denied on the column 'phone'"):
+def test_reader_is_denied_every_phi_column(logins):
+    queries = [f"SELECT {c} FROM gold.dim_patient" for c in sorted(DENIED["dim_patient"])]
+    queries += [
+        "SELECT * FROM gold.dim_patient",
+        # Predicates are denied too, so masked values cannot be inferred.
+        "SELECT COUNT(*) FROM gold.dim_patient WHERE birth_date = '1980-01-01'",
+        "SELECT COUNT(*) FROM gold.dim_patient WHERE family_name LIKE 'A%'",
+    ]
+    for query in queries:
+        with pytest.raises(Exception, match="SELECT permission was denied on the column"):
             rows(query, "u16_reader", logins["u16_reader"])
 
 
 @pytest.mark.stand
-def test_reader_reads_facts_but_not_silver(logins):
-    assert rows("SELECT COUNT(*) FROM gold.fact_claim", "u16_reader", logins["u16_reader"])[0][0]
+def test_reader_reads_non_phi_columns_and_facts_but_not_silver(logins):
+    login = ("u16_reader", logins["u16_reader"])
+    columns = ", ".join(sorted(NOT_PHI["dim_patient"]))
+    assert len(rows(f"SELECT {columns} FROM gold.dim_patient", *login)) == len(
+        rows("SELECT master_patient_id FROM gold.dim_patient")
+    )
+    assert rows("SELECT COUNT(*) FROM gold.fact_claim", *login)[0][0]
     with pytest.raises(Exception, match="SELECT permission was denied"):
-        rows("SELECT TOP 1 * FROM silver.patient_record", "u16_reader", logins["u16_reader"])
+        rows("SELECT TOP 1 * FROM silver.patient_record", *login)
 
 
 @pytest.mark.stand

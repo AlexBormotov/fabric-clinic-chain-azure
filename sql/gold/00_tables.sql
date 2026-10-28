@@ -40,7 +40,7 @@ CREATE TABLE gold.dim_bed (
 );
 
 -- PHI: names, birth date, phone and postal code, the only identifying columns in Gold. Each is
--- masked for readers without UNMASK; phone is also denied to gold_reader (30_security.sql).
+-- denied to gold_reader (30_security.sql) and masked for any other reader without UNMASK.
 DROP TABLE IF EXISTS gold.dim_patient;
 CREATE TABLE gold.dim_patient (
     master_patient_id varchar(32) NOT NULL,

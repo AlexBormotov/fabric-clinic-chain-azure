@@ -46,16 +46,33 @@ Read on Microsoft Learn on 2026-10-28:
 
 | Table | Column | PHI | Masked | Denied to `gold_reader` |
 |---|---|---|---|---|
-| `dim_patient` | `given_name`, `family_name` | yes | `partial(1,"xxxx",0)` | no |
-| `dim_patient` | `birth_date` | yes | `default()` (1900-01-01) | no |
+| `dim_patient` | `given_name`, `family_name` | yes | `partial(1,"xxxx",0)` | yes |
+| `dim_patient` | `birth_date` | yes | `default()` (1900-01-01) | yes |
 | `dim_patient` | `phone` | yes | `default()` | yes |
-| `dim_patient` | `postal_code` | yes | `partial(3,"xx",0)` | no |
+| `dim_patient` | `postal_code` | yes | `partial(3,"xx",0)` | yes |
 | `dim_patient` | `master_patient_id`, `sex`, `home_clinic_id`, `source_records` | no | no | no |
 
 - `master_patient_id` is a hash of the MPI cluster label, not of demographics.
 - Event dates in facts stay clear. The analysis needs them, and without demographics they do not
   identify anyone.
 - No other Gold table holds a PHI column (tested).
+
+## Spec change inside this unit (2026-10-28)
+
+The first version of this unit denied only `phone` to `gold_reader` and left the other four PHI
+columns masked. Security review on PR #18 found that this leaks PHI. A masked column still answers
+predicates (`WHERE birth_date = ...`, `LIKE 'A%'`), and Microsoft Learn says DDM does not prevent
+inference.
+
+The coordinator changed the unit before merge:
+
+- `gold_reader` is denied every PHI column. The column `DENY` is the access control; DDM is defense
+  in depth.
+- The spec's check that "a non-privileged user sees masked values" now runs as a principal outside
+  both roles. Locally that is a login with `db_datareader` only. It models a Fabric Viewer, who
+  reads through `ReadData` (`db_datareader`).
+- **A Viewer still sees masks only and can infer PHI through predicates.** So the Viewer role is not
+  granted on the Gold warehouse to non-PHI users. Those readers get `gold_reader` and item Read.
 
 ## Approach A — inline masks, schema GRANT plus column DENY (taken)
 
@@ -64,28 +81,31 @@ Read on Microsoft Learn on 2026-10-28:
 - `sql/gold/30_security.sql` sets the roles and grants:
   - it creates roles `gold_reader` and `gold_phi_reader` if they are missing;
   - both roles get `GRANT SELECT ON SCHEMA::gold`;
-  - `gold_reader` gets `DENY SELECT (phone) ON gold.dim_patient`;
+  - `gold_reader` gets `DENY SELECT` on the five PHI columns of `gold.dim_patient`;
   - `gold_phi_reader` gets `GRANT UNMASK ON gold.dim_patient`.
-- `DENY` also binds Viewers, who read through `ReadData` (`db_datareader`). A whitelist of column
-  grants would not restrict them.
-- `sql/fabric/security_members.sql` holds the Fabric-only part. It adds Entra groups to the roles,
-  and its comments state the workspace-role and `ReadAll` rules. It is not run locally.
+- `sql/fabric/security_members.sql` holds the Fabric-only part. It adds Entra groups to the roles.
+  It is not run locally. Its comments state three rules:
+  - item Read only;
+  - no workspace role;
+  - no `ReadAll`.
 - Files: `sql/gold/00_tables.sql`, `sql/gold/30_security.sql`, `sql/fabric/security_members.sql`,
   `src/clinic_chain/stand.py` (connect as another login), `tests/test_gold_security.py`,
   `README.md`, `plan.md`.
 - Invariants:
-  - every PHI column is masked;
-  - `phone` is denied to `gold_reader`;
+  - every PHI column is masked and denied to `gold_reader`;
   - every `dim_patient` column is classified as PHI or not;
   - no PHI-named column exists outside `dim_patient` (this covers U09's `fact_stay`);
   - no Gold view names a PHI column, because ownership chaining would bypass the `DENY`;
   - `sql/gold/` creates no user, login or role membership.
 - Red checks:
-  - fast: classification, masks, denied set and no-principal tests;
-  - `stand`: as local login `u16_reader` (role `gold_reader`), names show as `Xxxxx`, birth dates
-    as 1900-01-01 and postal codes as their first three characters plus `xx`. `phone` and
-    `SELECT *` fail with "SELECT permission was denied on the column 'phone'", and `silver` is denied.
-  - `stand`: as `u16_phi_reader`, values equal what `sa` reads, phone included.
+  - fast: classification, masks, denied set and no-principal tests.
+  - `stand`, as `u16_reader` (role `gold_reader`):
+    - selecting any PHI column fails with "SELECT permission was denied on the column";
+    - so do `SELECT *` and the predicates `WHERE birth_date = ...` and `LIKE 'A%'`;
+    - the non-PHI `dim_patient` columns and the facts are readable, and `silver` is denied.
+  - `stand`, as `u16_datareader` (`db_datareader` only, the Viewer model): names show as `Xxxxx`,
+    birth dates as 1900-01-01, and postal codes as the first three characters plus `xx`.
+  - `stand`, as `u16_phi_reader`: values equal what `sa` reads, phone included.
   - The logins exist only in test setup and are dropped afterwards.
 - Reverse: delete `30_security.sql` and the `MASKED WITH` clauses, then
   `DROP ROLE gold_reader, gold_phi_reader`.
@@ -93,8 +113,8 @@ Read on Microsoft Learn on 2026-10-28:
 ## Approaches not taken
 
 - **B. Column whitelist: `GRANT SELECT` per table plus a column list on `dim_patient`.** It fails
-  closed for new columns. But it does not restrict Viewers, who read everything through `ReadData`,
-  and it must list every Gold table. The classification test covers new columns instead.
+  closed for new columns, but it must list every Gold table. The classification test covers new
+  columns instead.
 - **C. Masks added by `ALTER COLUMN ... ADD MASKED` in `30_security.sql`.** It keeps the security
   in one file, but `ALTER COLUMN` is in preview in Fabric.
 
@@ -103,6 +123,7 @@ Read on Microsoft Learn on 2026-10-28:
 - sqlfluff (tsql) cannot parse `DENY SELECT ON t (col)`. It parses `DENY SELECT (col) ON t`, which
   both engines accept.
 - mssql_python pools connections, so the test kills the login's sessions before it drops the login.
-- Negative control: one rebuild with the `DENY` and `UNMASK` lines and the `given_name` mask
-  removed. Five tests failed: masks, denied set, masked view, CLS denial and clear view. All nine
-  passed after the restore.
+- Negative control, rerun after the spec change: one rebuild with the `phone, postal_code` DENY, the
+  `UNMASK` and the `given_name` mask removed. Five tests failed: masks, denied set, datareader masked
+  view, reader denial and clear view. All passed after the restore: 10 security tests, plus 11
+  `stand` tests across Gold, PHI and metrics.
