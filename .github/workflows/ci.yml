@@ -42,6 +42,7 @@ jobs:
       - run: make silver
       - run: make mpi
       - run: make gold
+      - run: make bed-history
       - run: make test-stand
 
   secrets:

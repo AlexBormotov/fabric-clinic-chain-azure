@@ -43,5 +43,7 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
   collation) and run `sql/gold/` (T-SQL kept to the Fabric Warehouse surface; ADR 0002)
 - `make metric-reference` — metric reference values from `data/sources/` (pandas, not Gold) into
   `docs/evidence/metric-reference.json`; definitions in `GLOSSARY.md`
+- `make bed-history` — after `make silver`: run `fabric/nb_bed_history.Notebook/notebook-content.py`
+  (SCD2 `bed_state_history` from `adt_event`, incremental via the `bed_event` log)
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`

@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history secrets up down
 
 setup:
 	docker compose build dev
@@ -58,6 +58,10 @@ gold:
 # Metric reference values straight from data/sources/ (not from Gold) into docs/evidence/.
 metric-reference:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/metric_reference.py'
+
+# Needs `make silver`: applies new ADT events to data/lh_silver/Tables/bed_state_history.
+bed-history:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/bed_history.py'
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .

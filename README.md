@@ -26,6 +26,7 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make silver` | build Silver from Bronze into `data/lh_silver/` and print the reconciliation (~2.5 min) |
 | `make mpi` / `make mpi-eval` | match patient records into `patient_xref` / score it against ground truth |
 | `make gold` | copy Silver into the stand's SQL Server and build the Gold star schema (~30 s) |
+| `make bed-history` | apply new ADT events to the SCD2 bed state history in `bed_state_history` |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -156,3 +157,13 @@ The eight metrics are defined in [`GLOSSARY.md`](GLOSSARY.md) and exposed as Gol
 `make metric-reference` computes the same metrics with pandas straight from `data/sources/` into
 [`docs/evidence/metric-reference.json`](docs/evidence/metric-reference.json); a stand test requires
 Gold to match it to a relative 1e-6.
+
+## Bed state history
+
+`nb_bed_history` runs after `nb_silver` and writes `bed_state_history`: one row per bed and interval
+of constant state (free, or occupied by one stay), with `valid_from`, `valid_to` (NULL on the
+current row), `stay_id` and `adt_patient_id`. Events are deduplicated by `event_id`; those not yet
+in the `bed_event` log are new. The beds they touch are recomputed from all their events and
+applied with one Delta MERGE, so a late, duplicate or out-of-order event yields the same history as
+an in-order run. Tests cover each case; on the full population the history has no gaps or overlaps
+and its occupied intervals equal the stay segments in `adt_event`.
