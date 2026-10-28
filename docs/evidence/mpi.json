@@ -1,0 +1,23 @@
+{
+  "measured_at": "2026-10-28",
+  "records": 33396,
+  "records_linked_to_ground_truth": 33396,
+  "persons": 15326,
+  "masters": 15330,
+  "true_pairs": 21343,
+  "predicted_pairs": 21339,
+  "true_positive_pairs": 21339,
+  "precision": 1.0,
+  "recall": 0.9998,
+  "candidate_pairs": 65392,
+  "blocking_recall": 0.9998,
+  "review_pairs": 22,
+  "thresholds": {
+    "match": 20.0,
+    "review": 12.0
+  },
+  "gates": {
+    "precision": 0.98,
+    "recall": 0.95
+  }
+}

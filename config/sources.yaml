@@ -9,6 +9,9 @@ noise:
   name_typo: 0.04
   dob_day_month_swap: 0.02
   phone_format: 0.25
+  # A patient's phone is unknown to a system, or the system holds an outdated number.
+  phone_missing: 0.10
+  phone_changed: 0.05
   duplicate: 0.05
 
 # Ward sizes; median LOS (days) drives referred stays. Synthea stays are placed first.

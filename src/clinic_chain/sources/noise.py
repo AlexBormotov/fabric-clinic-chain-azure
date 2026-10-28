@@ -46,6 +46,13 @@ def reformat_phone(phone: str, rng: random.Random) -> str:
     return rng.choice(PHONE_FORMATS).format(a=a, b=b, c=c)
 
 
+def other_phone(phone: str, rng: random.Random) -> str:
+    """A different number in the same 555 range; never returns `phone`."""
+    while (new := f"555-{rng.randrange(100, 1000)}-{rng.randrange(1000, 10000)}") == phone:
+        pass
+    return new
+
+
 def build_register(
     persons: list[dict], system: str, id_format: str, rates: dict, rng: random.Random
 ) -> list[dict]:
@@ -71,7 +78,14 @@ def build_register(
     swappable = [r for r in records if can_swap_day_month(r["birth_date"])]
     for r in rng.sample(swappable, round(rates["dob_day_month_swap"] * n)):
         r["birth_date"] = swap_day_month(r["birth_date"])
-    with_phone = [r for r in records if r["phone"].count("-") == 2]
+    missing, changed = round(rates["phone_missing"] * n), round(rates["phone_changed"] * n)
+    hit = rng.sample([r for r in records if r["phone"]], missing + changed)
+    for r in hit[:missing]:
+        r["phone"] = ""
+    for r in hit[missing:]:
+        r["phone"] = other_phone(r["phone"], rng)
+    untouched = {id(r) for r in records} - {id(r) for r in hit}
+    with_phone = [r for r in records if id(r) in untouched and r["phone"].count("-") == 2]
     for r in rng.sample(with_phone, round(rates["phone_format"] * n)):
         r["phone"] = reformat_phone(r["phone"], rng)
     return records

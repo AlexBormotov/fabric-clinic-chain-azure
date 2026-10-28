@@ -24,6 +24,7 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make test-stand` | read the stand, Bronze and Silver back and compare with their inputs |
 | `make bronze` | land the stand into `data/lh_bronze/Files/` and build Bronze on local Spark (~3 min) |
 | `make silver` | build Silver from Bronze into `data/lh_silver/` and print the reconciliation (~2.5 min) |
+| `make mpi` / `make mpi-eval` | match patient records into `patient_xref` / score it against ground truth |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -100,7 +101,7 @@ FHIR facts and would otherwise count twice:
 
 | Silver table | Source |
 |---|---|
-| `patient_record` | patients of FHIR, lab, ADT and billing, one row per source record |
+| `patient_record` | patients of the EHR (FHIR), lab, ADT and billing, one row per source record |
 | `encounter`, `condition`, `medication_request` | FHIR bundles, parsed with explicit schemas |
 | `lab_result` | lab system |
 | `claim`, `claim_line` | billing |
@@ -116,3 +117,18 @@ out and the rows dropped by reason; FHIR resource types Silver does not use (Obs
 ExplanationOfBenefit and others) are counted as `out_of_scope`. On the full population nothing is
 dropped: Silver holds 1,200 FHIR patients, 20,083 encounters, 16,971 conditions, 10,277 medication
 requests and every source row.
+
+## Master patient index
+
+`nb_mpi` runs after `nb_silver` and matches `patient_record` rows across and within systems. It
+writes `patient_xref` (system, local patient ID → master patient ID) and `patient_match_review`
+(uncertain pairs, not merged). Scoring follows Fellegi–Sunter, as described in
+[ADR 0001](docs/adr/0001-mpi-approach.md):
+
+- blocking on birth year with surname soundex, on birth date and on phone;
+- Jaro-Winkler for names;
+- weights log2(m/u), with u measured on random pairs.
+
+`make mpi-eval` scores the result against the generator's ground truth, which never reaches Fabric.
+Results are in [`docs/evidence/mpi.json`](docs/evidence/mpi.json). CI fails below precision 0.98 or
+recall 0.95.
