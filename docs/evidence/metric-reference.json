@@ -1,0 +1,96 @@
+{
+  "window": {
+    "start": "2024-10-01",
+    "end": "2026-09-30"
+  },
+  "overall": {
+    "beds": 48,
+    "occupancy_rate": 0.7997713879243827,
+    "alos_days": 4.400359349616656,
+    "bed_turnover_per_year": 66.02083333333333,
+    "readmission_30d_rate": 0.1029774633985853,
+    "ed_wait_median_minutes": 45.0,
+    "revenue_per_bed_per_year": 717462.0795833335,
+    "claim_denial_rate": 0.06604119552594585,
+    "payer_mix": {
+      "Aetna": 0.05222785893282807,
+      "Anthem": 0.04550455351139906,
+      "Blue Cross Blue Shield": 0.04018703013263248,
+      "Cigna Health": 0.04250962655094432,
+      "Dual Eligible": 0.15234398875374366,
+      "Humana": 0.07921276205610904,
+      "Medicaid": 0.20090459018397408,
+      "Medicare": 0.28739074628690175,
+      "NO_INSURANCE": 0.07255057759305666,
+      "UnitedHealthcare": 0.027168265998410854
+    }
+  },
+  "by_clinic": {
+    "boston": {
+      "beds": 12,
+      "occupancy_rate": 0.798626950152207,
+      "alos_days": 4.373215886251685,
+      "bed_turnover_per_year": 66.41666666666667,
+      "readmission_30d_rate": 0.10190664036817883,
+      "ed_wait_median_minutes": 45.0,
+      "revenue_per_bed_per_year": 735116.545,
+      "claim_denial_rate": 0.06644129502015343,
+      "payer_mix": {
+        "Aetna": 0.03146534910934859,
+        "Anthem": 0.05473930568196594,
+        "Blue Cross Blue Shield": 0.037446365882199975,
+        "Cigna Health": 0.038876609023534,
+        "Dual Eligible": 0.11376934078793395,
+        "Humana": 0.12729163957872838,
+        "Medicaid": 0.1852814978546353,
+        "Medicare": 0.2974905733974776,
+        "NO_INSURANCE": 0.06852164868027565,
+        "UnitedHealthcare": 0.04511767000390066
+      }
+    },
+    "springfield": {
+      "beds": 20,
+      "occupancy_rate": 0.8001663352993404,
+      "alos_days": 4.422238876738093,
+      "bed_turnover_per_year": 65.725,
+      "readmission_30d_rate": 0.10443037974683544,
+      "ed_wait_median_minutes": 45.0,
+      "revenue_per_bed_per_year": 721022.5317499998,
+      "claim_denial_rate": 0.0672561442595558,
+      "payer_mix": {
+        "Aetna": 0.04964143981062452,
+        "Anthem": 0.03341920211654947,
+        "Blue Cross Blue Shield": 0.030355775255865768,
+        "Cigna Health": 0.04629951959896957,
+        "Dual Eligible": 0.19062869873981758,
+        "Humana": 0.041425885956972774,
+        "Medicaid": 0.25781521966163057,
+        "Medicare": 0.2493907957947504,
+        "NO_INSURANCE": 0.08208591519877463,
+        "UnitedHealthcare": 0.018937547866044697
+      }
+    },
+    "worcester": {
+      "beds": 16,
+      "occupancy_rate": 0.8001360320348174,
+      "alos_days": 4.393619587820681,
+      "bed_turnover_per_year": 66.09375,
+      "readmission_30d_rate": 0.10197044334975369,
+      "ed_wait_median_minutes": 45.0,
+      "revenue_per_bed_per_year": 699770.6653125,
+      "claim_denial_rate": 0.06411698537682789,
+      "payer_mix": {
+        "Aetna": 0.07067866516685414,
+        "Anthem": 0.05511811023622047,
+        "Blue Cross Blue Shield": 0.05539932508436445,
+        "Cigna Health": 0.04002624671916011,
+        "Dual Eligible": 0.12860892388451445,
+        "Humana": 0.09542557180352455,
+        "Medicaid": 0.13554555680539931,
+        "Medicare": 0.3312710911136108,
+        "NO_INSURANCE": 0.06261717285339333,
+        "UnitedHealthcare": 0.02530933633295838
+      }
+    }
+  }
+}

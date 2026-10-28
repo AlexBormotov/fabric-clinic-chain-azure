@@ -16,3 +16,5 @@ __pycache__/
 *.tfstate.*
 .DS_Store
 TASK.md
+# Agent worktrees (Claude Code)
+.claude/worktrees/
