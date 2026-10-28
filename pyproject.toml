@@ -6,6 +6,7 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "azure-storage-blob==12.31.0",
     "delta-spark==4.2.0",
+    "fabric-cicd==1.4.0",
     "mssql-python==1.16.0",
     "openpyxl==3.1.5",
     "pandas==3.0.6",

@@ -6,6 +6,15 @@ services:
     image: clinic-chain-dev:local
     environment:
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD-}
+      # make deploy / make republish (U19): identity, target and parameter.yml values.
+      ACTIONS_ID_TOKEN_REQUEST_URL: ${ACTIONS_ID_TOKEN_REQUEST_URL-}
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${ACTIONS_ID_TOKEN_REQUEST_TOKEN-}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID-}
+      FABRIC_WORKSPACE_ID: ${FABRIC_WORKSPACE_ID-}
+      FABRIC_SQL_CONNECTION_ID: ${FABRIC_SQL_CONNECTION_ID-}
+      FABRIC_BLOB_CONNECTION_ID: ${FABRIC_BLOB_CONNECTION_ID-}
+      SHAREPOINT_SITE_URL: ${SHAREPOINT_SITE_URL-}
     volumes:
       - .:/workspace
       - uv-cache:/root/.cache/uv

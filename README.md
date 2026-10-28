@@ -27,6 +27,8 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make mpi` / `make mpi-eval` | match patient records into `patient_xref` / score it against ground truth |
 | `make gold` | copy Silver into the stand's SQL Server and build the Gold star schema (~30 s) |
 | `make bed-history` | apply new ADT events to the SCD2 bed state history in `bed_state_history` |
+| `make deploy ENVIRONMENT=Test` | deploy `fabric/` to a Fabric workspace (CI, see Deployment) |
+| `make republish ENVIRONMENT=Test` | republish deployed Dataflows Gen2 as the owner |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -167,3 +169,49 @@ in the `bed_event` log are new. The beds they touch are recomputed from all thei
 applied with one Delta MERGE, so a late, duplicate or out-of-order event yields the same history as
 an in-order run. Tests cover each case; on the full population the history has no gaps or overlaps
 and its occupied intervals equal the stay segments in `adt_event`.
+
+## Deployment
+
+`.github/workflows/deploy.yml` deploys `fabric/` with
+[`fabric-cicd`](https://github.com/microsoft/fabric-cicd) 1.4.0 on manual dispatch only: Test, then
+Prod if `target` is `Prod`. It never runs on push.
+Environment values live in [`fabric/parameter.yml`](fabric/parameter.yml), which commits no ID:
+
+- workspace and item IDs are looked up by name in the target workspace;
+- connection IDs and the SharePoint site come from GitHub environment variables.
+
+Why fabric-cicd and not the deployment pipeline:
+[ADR 0004](docs/adr/0004-fabric-cicd-vs-deployment-pipelines.md).
+
+The workflow signs in as the deployer service principal through GitHub OIDC. No client secret
+exists anywhere. One-time owner setup, after `terraform apply` (U18):
+
+1. Create an Entra app registration, the deployer. Pass its service principal object ID to
+   Terraform as `deployer_principal_id`, which makes it Contributor on Test and Prod.
+2. On the app, add two federated credentials: issuer `https://token.actions.githubusercontent.com`,
+   audience `api://AzureADTokenExchange`, subjects
+   `repo:AlexBormotov/fabric-clinic-chain-azure:environment:Test` and `…:environment:Prod`.
+3. In the Fabric admin portal, allow service principals to use Fabric APIs, for a security group
+   that holds the deployer.
+4. In Fabric, create the Azure SQL and Blob Storage connections the pipeline uses. Share them with
+   the deployer.
+5. In GitHub, create the environments `Test` and `Prod`:
+   - limit both to the `main` branch;
+   - add yourself as a required reviewer on `Prod`;
+   - set these variables in each (variables, not secrets: none of them is a credential):
+
+| Variable | Value |
+|---|---|
+| `AZURE_TENANT_ID` | Entra tenant ID |
+| `AZURE_CLIENT_ID` | deployer app (client) ID |
+| `FABRIC_WORKSPACE_ID` | `terraform output workspace_ids`, `test` or `prod` |
+| `FABRIC_SQL_CONNECTION_ID` | Fabric connection to the billing database |
+| `FABRIC_BLOB_CONNECTION_ID` | Fabric connection to the Blob storage account |
+| `SHAREPOINT_SITE_URL` | SharePoint site with `beds.xlsx` and `rosters.xlsx` |
+
+After a deploy that changed `df_sharepoint`, the dataflow needs an "apply changes" job. Fabric
+does not accept a service principal for that job. Run it yourself:
+
+1. Set `FABRIC_WORKSPACE_ID` in your shell, or in the git-ignored compose environment file.
+2. Run `make republish ENVIRONMENT=Test`.
+3. Sign in with the device code it prints.
