@@ -25,6 +25,7 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make bronze` | land the stand into `data/lh_bronze/Files/` and build Bronze on local Spark (~3 min) |
 | `make silver` | build Silver from Bronze into `data/lh_silver/` and print the reconciliation (~2.5 min) |
 | `make mpi` / `make mpi-eval` | match patient records into `patient_xref` / score it against ground truth |
+| `make gold` | copy Silver into the stand's SQL Server and build the Gold star schema (~30 s) |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -132,3 +133,18 @@ writes `patient_xref` (system, local patient ID → master patient ID) and `pati
 `make mpi-eval` scores the result against the generator's ground truth, which never reaches Fabric.
 Results are in [`docs/evidence/mpi.json`](docs/evidence/mpi.json). CI fails below precision 0.98 or
 recall 0.95.
+
+## Gold
+
+The Gold star schema is a Fabric Warehouse built in T-SQL ([`sql/gold/`](sql/gold/)): dimensions
+date, clinic, ward, bed, patient (one row per master patient), payer and diagnosis; facts encounter,
+bed-day (occupied hours per stay segment and day), claim, lab result and ED visit, all within the
+2024-10-01 … 2026-09-30 window. The procedure `gold.reload` truncates and refills it from a `silver`
+schema, which is a set of views over the Lakehouse in Fabric and copied tables locally. The T-SQL
+stays inside what both Fabric Warehouse and SQL Server accept
+([ADR 0002](docs/adr/0002-lakehouse-warehouse.md)). `make gold` builds it on the stand's SQL Server.
+Tests check:
+
+- that Gold reconciles with Silver: rows per fact inside the window, and bed hours recomputed from
+  ADT events in Spark;
+- that keys are unique and every fact key resolves to a dimension.

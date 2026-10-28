@@ -39,5 +39,7 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make mpi` — after `make silver`: run `fabric/nb_mpi.Notebook/notebook-content.py` (patient
   matching into `patient_xref`); `make mpi-eval` — precision/recall vs ground truth into
   `docs/evidence/mpi.json`
+- `make gold` — after `make up` and `make mpi`: copy Silver into SQL Server (`clinic_gold`, Fabric
+  collation) and run `sql/gold/` (T-SQL kept to the Fabric Warehouse surface; ADR 0002)
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`
