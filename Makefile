@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history quality secrets up down
 
 setup:
 	docker compose build dev
@@ -62,6 +62,10 @@ metric-reference:
 # Needs `make silver`: applies new ADT events to data/lh_silver/Tables/bed_state_history.
 bed-history:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/bed_history.py'
+
+# Needs `make silver`: Soda data contracts on data/lh_silver/; fails when a check fails.
+quality:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/quality.py'
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .

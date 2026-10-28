@@ -45,5 +45,8 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
   `docs/evidence/metric-reference.json`; definitions in `GLOSSARY.md`
 - `make bed-history` — after `make silver`: run `fabric/nb_bed_history.Notebook/notebook-content.py`
   (SCD2 `bed_state_history` from `adt_event`, incremental via the `bed_event` log)
+- `make quality` — after `make silver`: run `fabric/nb_quality.Notebook/notebook-content.py`
+  (Soda v4 contracts) on `data/lh_silver/Tables/`; exits non-zero on a failed check. The Soda pins
+  in `pyproject.toml` and the notebook's `%pip` cell must match (a test enforces it)
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`
