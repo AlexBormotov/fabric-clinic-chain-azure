@@ -1,0 +1,30 @@
+/// Beds, the capacity denominator of occupancy, turnover and revenue per bed.
+table dim_bed
+
+	/// Beds in scope.
+	measure beds = COUNTROWS(dim_bed)
+		formatString: 0
+		isHidden
+
+	column bed_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: bed_id
+
+	column ward_key
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ward_key
+
+	column clinic_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: clinic_id
+
+	partition dim_bed = entity
+		mode: directLake
+		source
+			entityName: dim_bed
+			schemaName: gold
+			expressionSource: DatabaseQuery

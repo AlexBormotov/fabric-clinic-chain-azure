@@ -1,0 +1,14 @@
+/// Clinic-scoped users see only the clinics mapped to them in user_clinic (U17 adds members).
+role clinic
+	modelPermission: read
+
+	tablePermission dim_clinic =
+			VAR me = LOWER(USERPRINCIPALNAME())
+			RETURN
+			    [clinic_id]
+			        IN SELECTCOLUMNS(
+			            FILTER(user_clinic, LOWER(user_clinic[user_principal_name]) = me),
+			            "clinic_id", user_clinic[clinic_id]
+			        )
+
+	tablePermission user_clinic = LOWER([user_principal_name]) = LOWER(USERPRINCIPALNAME())

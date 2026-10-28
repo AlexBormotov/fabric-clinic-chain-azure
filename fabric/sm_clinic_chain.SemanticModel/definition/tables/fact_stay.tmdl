@@ -1,0 +1,97 @@
+/// Inpatient stays from admission (A01) to discharge (A03); open stays have no discharge.
+table fact_stay
+
+	/// Stays discharged in the window.
+	measure discharges =
+			VAR stop = MAXX(ALL(dim_date), dim_date[calendar_date]) + 1
+			RETURN CALCULATE(COUNTROWS(fact_stay), FILTER(fact_stay, NOT ISBLANK(fact_stay[discharged_at]) && fact_stay[discharged_at] < stop))
+		formatString: #,##0
+		isHidden
+
+	/// Mean length of stay in days over stays discharged in the window. GLOSSARY.md.
+	measure alos_days =
+			VAR stop = MAXX(ALL(dim_date), dim_date[calendar_date]) + 1
+			RETURN
+			    CALCULATE(
+			        AVERAGE(fact_stay[length_of_stay_days]),
+			        FILTER(fact_stay, NOT ISBLANK(fact_stay[discharged_at]) && fact_stay[discharged_at] < stop)
+			    )
+		formatString: 0.00
+
+	/// Stays discharged / beds / (days / 365). GLOSSARY.md.
+	measure bed_turnover_per_year = DIVIDE([discharges], [beds] * [window_days] / 365)
+		formatString: 0.0
+
+	/// Share of index stays (discharged at least 30 days before the window's end) followed by an admission of the same master patient within 30 days. GLOSSARY.md.
+	measure readmission_30d_rate =
+			VAR cutoff = MAXX(ALL(dim_date), dim_date[calendar_date]) + 1 - 30
+			VAR index_stays =
+			    FILTER(
+			        fact_stay,
+			        NOT ISBLANK(fact_stay[discharged_at]) && fact_stay[discharged_at] < cutoff
+			    )
+			RETURN
+			    AVERAGEX(
+			        index_stays,
+			        VAR patient = fact_stay[master_patient_id]
+			        VAR discharged = fact_stay[discharged_at]
+			        VAR next_admissions =
+			            CALCULATE(
+			                COUNTROWS(fact_stay),
+			                REMOVEFILTERS(),
+			                fact_stay[master_patient_id] = patient,
+			                fact_stay[admitted_at] > discharged,
+			                fact_stay[admitted_at] <= discharged + 30
+			            )
+			        RETURN IF(next_admissions > 0, 1, 0)
+			    )
+		formatString: 0.0%
+
+	column stay_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: stay_id
+
+	column master_patient_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: master_patient_id
+
+	column clinic_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: clinic_id
+
+	column admit_date_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: admit_date_key
+
+	column admitted_at
+		dataType: dateTime
+		isHidden
+		summarizeBy: none
+		sourceColumn: admitted_at
+
+	column discharged_at
+		dataType: dateTime
+		isHidden
+		summarizeBy: none
+		sourceColumn: discharged_at
+
+	column length_of_stay_days
+		dataType: double
+		isHidden
+		summarizeBy: none
+		sourceColumn: length_of_stay_days
+
+	partition fact_stay = entity
+		mode: directLake
+		source
+			entityName: fact_stay
+			schemaName: gold
+			expressionSource: DatabaseQuery

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "sm_clinic_chain",
+    "description": "Direct Lake model over Gold: the eight metrics, RLS by clinic, no PHI"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "36dee86f-6e92-427a-9d7f-6f5e6bc0a41c"
+  }
+}

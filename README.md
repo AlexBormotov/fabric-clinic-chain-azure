@@ -167,3 +167,24 @@ in the `bed_event` log are new. The beds they touch are recomputed from all thei
 applied with one Delta MERGE, so a late, duplicate or out-of-order event yields the same history as
 an in-order run. Tests cover each case; on the full population the history has no gaps or overlaps
 and its occupied intervals equal the stay segments in `adt_event`.
+
+## Semantic model and report
+
+[`fabric/sm_clinic_chain.SemanticModel/`](fabric/sm_clinic_chain.SemanticModel/) is a Direct Lake
+on OneLake model in TMDL over the Gold Warehouse tables. [`fabric/rpt_clinic_chain.Report/`](fabric/rpt_clinic_chain.Report/)
+is a PBIR report bound to it by path, with one page per contour: occupancy, quality, economics.
+
+- Tables: `dim_date`, `dim_clinic`, `dim_bed`, `dim_payer` and the bed-day, stay, ED visit and claim
+  facts, each related to `dim_clinic` and `dim_date`. `dim_patient` and every PHI column stay out.
+- Measures carry the metric names of [`GLOSSARY.md`](GLOSSARY.md) and follow its definitions.
+- RLS: the role `clinic` keeps the `dim_clinic` rows mapped to `USERPRINCIPALNAME()` in
+  `gold.user_clinic` ([`sql/gold/30_access.sql`](sql/gold/30_access.sql)); facts follow through
+  their relationships. The table is never reloaded or committed with rows; U17 fills it and adds
+  role members. Model RLS does not bind workspace Admins, Members or Contributors.
+- The OneLake URL in `expressions.tmdl` holds zero GUIDs for workspace and Warehouse; deployment
+  (U19) replaces them per environment.
+
+`make test` parses the TMDL with a small structural reader (`src/clinic_chain/tmdl.py`) and checks
+that every model column exists in Gold with a compatible type, that no PHI column is present, that
+every metric has a measure and a visual, and that the RLS role exists. Measure values are compared
+with the U09 reference in the cloud run.

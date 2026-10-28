@@ -1,0 +1,37 @@
+/// Emergency department visits.
+table fact_ed_visit
+
+	/// Median whole minutes from ED arrival to provider. GLOSSARY.md.
+	measure ed_wait_median_minutes = MEDIAN(fact_ed_visit[minutes_to_provider])
+		formatString: 0.0
+
+	column ed_visit_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: ed_visit_id
+
+	column clinic_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: clinic_id
+
+	column arrival_date_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: arrival_date_key
+
+	column minutes_to_provider
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: minutes_to_provider
+
+	partition fact_ed_visit = entity
+		mode: directLake
+		source
+			entityName: fact_ed_visit
+			schemaName: gold
+			expressionSource: DatabaseQuery
