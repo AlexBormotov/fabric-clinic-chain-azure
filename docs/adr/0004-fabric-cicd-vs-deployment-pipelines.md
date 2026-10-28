@@ -23,9 +23,12 @@ through a Fabric deployment pipeline. Only one can own Test and Prod. The two di
   approval.
 - The deployment pipeline that Terraform creates (U18) is used once in the cloud run (U20) to promote
   Dev to Test for comparison. The next fabric-cicd run then overwrites Test from Git.
-- `fabric-cicd` deploys code items only: notebooks, pipeline, dataflow, semantic model, report.
-  Lakehouses, warehouse and eventhouse stay with Terraform. Their types are not in scope, so the
-  orphan cleanup cannot delete them.
+- `fabric-cicd` deploys the items in `fabric/`: notebooks, pipeline, dataflow, semantic model,
+  report and the KQL database `kqldb_beds`.
+  - Lakehouses, warehouse and eventhouse stay with Terraform. Their types are not in scope, so the
+    orphan cleanup cannot delete them.
+  - The cleanup also excludes every Terraform item name, which covers the eventhouse's default
+    database.
 
 ## Consequences
 

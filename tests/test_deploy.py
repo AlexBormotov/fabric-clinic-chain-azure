@@ -15,7 +15,10 @@ import pytest
 import yaml
 from jsonpath_ng.ext import parse
 
-from clinic_chain.deploy import ENVIRONMENTS, ITEM_TYPES, PARAMETER_VARIABLES
+from clinic_chain import deploy
+
+ENVIRONMENTS, ITEM_TYPES = deploy.ENVIRONMENTS, deploy.ITEM_TYPES
+PARAMETER_VARIABLES = deploy.PARAMETER_VARIABLES
 
 FABRIC = Path(__file__).resolve().parents[1] / "fabric"
 PARAMETERS = yaml.safe_load((FABRIC / "parameter.yml").read_text(encoding="utf-8"))
@@ -23,8 +26,15 @@ PARAMETERS = yaml.safe_load((FABRIC / "parameter.yml").read_text(encoding="utf-8
 # Values that must never reach a workspace.
 PLACEHOLDERS = ("00000000-0000-0000-0000-000000000000", "example.sharepoint.com")
 
-# Items infra/modules/fabric creates in every workspace (U18), outside fabric/.
-TERRAFORM_ITEMS = {("Lakehouse", "lh_bronze"), ("Lakehouse", "lh_silver"), ("Warehouse", "wh_gold")}
+# Items infra/modules/fabric creates in every workspace (U18), outside fabric/. The eventhouse
+# comes with a default KQL database of the same name.
+TERRAFORM_ITEMS = {
+    ("Lakehouse", "lh_bronze"),
+    ("Lakehouse", "lh_silver"),
+    ("Warehouse", "wh_gold"),
+    ("Eventhouse", "eh_beds"),
+    ("KQLDatabase", "eh_beds"),
+}
 
 
 def repository_items() -> dict[Path, tuple[str, str]]:
@@ -158,11 +168,13 @@ def test_rule_filters_name_deployed_item_types():
         assert set(as_list(rule["item_type"])) <= set(ITEM_TYPES), rule
 
 
-def test_repository_item_types_are_in_scope_and_terraform_types_are_not():
-    """Out-of-scope types are never unpublished, so Terraform's lakehouses stay safe."""
+def test_orphan_cleanup_cannot_delete_terraform_items():
+    """Repository types are in scope; Terraform-only types are not; every Terraform name is
+    excluded from the cleanup (the eventhouse's default KQL database shares a scoped type)."""
     assert {item_type for item_type, _ in ITEMS.values()} <= set(ITEM_TYPES)
-    assert not {item_type for item_type, _ in TERRAFORM_ITEMS} & set(ITEM_TYPES)
-    assert not {"Eventhouse", "KQLDatabase"} & set(ITEM_TYPES)
+    assert not {"Lakehouse", "Warehouse", "Eventhouse"} & set(ITEM_TYPES)
+    assert all(re.search(deploy.TERRAFORM_ITEMS, name) for _, name in TERRAFORM_ITEMS)
+    assert not any(re.search(deploy.TERRAFORM_ITEMS, name) for _, name in ITEMS.values())
 
 
 @pytest.mark.parametrize("environment", ENVIRONMENTS)

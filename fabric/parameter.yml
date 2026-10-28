@@ -72,6 +72,14 @@ find_replace:
       Prod: $items.Warehouse.wh_gold.$id
 
 key_value_replace:
+  # KQL database (U12): child of the eventhouse Terraform creates.
+  - find_key: $.parentEventhouseItemId
+    item_type: KQLDatabase
+    item_name: kqldb_beds
+    replace_value:
+      Test: $items.Eventhouse.eh_beds.$id
+      Prod: $items.Eventhouse.eh_beds.$id
+
   # Pipeline: sinks write to lh_bronze in the target workspace.
   - find_key: $.properties.activities[*].typeProperties.sink.datasetSettings.linkedService.properties.typeProperties.artifactId
     item_type: DataPipeline

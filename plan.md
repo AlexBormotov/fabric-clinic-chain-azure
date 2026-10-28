@@ -77,11 +77,17 @@ previous: PLAN-U09 (landed in #16), PLAN-U13 (#15); see git history of this file
   (`test_every_placeholder_is_resolved`). The resolver re-implements fabric-cicd's rule semantics
   offline and fails on `$items` names not in `fabric/` or Terraform.
 - No dead rule (`test_every_rule_matches_something`). A rule whose `item_name` targets are all
-  absent from `fabric/` (the U10 model, until it merges) is exempt.
+  absent from `fabric/` (the U10 model and the U12 `kqldb_beds`, until they merge) is exempt.
 - Every rule has exactly the keys Test and Prod, and fabric-cicd's own validator accepts the file
   for each.
-- Lakehouse, Warehouse, Eventhouse and KQLDatabase are never in `ITEM_TYPES`, so the orphan cleanup
-  cannot delete Terraform's items.
+- The orphan cleanup cannot delete Terraform's items (`test_orphan_cleanup_cannot_delete_terraform_items`):
+  - Lakehouse, Warehouse and Eventhouse are never in `ITEM_TYPES`;
+  - KQLDatabase is in scope for U12's `kqldb_beds`, but fabric-cicd unpublishes it only with
+    `enable_kqldatabase_unpublish`, which is never set;
+  - `item_name_exclude_regex` also excludes every Terraform name, including the eventhouse's
+    default database `eh_beds`.
+- `kqldb_beds`'s `parentEventhouseItemId` resolves to `$items.Eventhouse.eh_beds.$id`. With
+  `origin/u12-eventhouse` overlaid, the tests pass and that rule matches.
 - fabric-cicd uploads every file in an item folder (`os.walk`). `deploy()` first removes the
   git-ignored `__pycache__` that notebook-importing tests leave in `fabric/`.
 - `deploy.yml`: `workflow_dispatch` only, no `secrets.`, read-only default permissions, jobs in

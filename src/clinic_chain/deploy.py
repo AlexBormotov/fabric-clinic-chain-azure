@@ -21,9 +21,12 @@ from azure.identity import ClientAssertionCredential, DeviceCodeCredential
 
 ENVIRONMENTS = ("Test", "Prod")
 
-# Code items only. Lakehouses, the warehouse and the eventhouse belong to Terraform; keeping their
-# types out of scope also keeps unpublish_all_orphan_items from deleting them.
-ITEM_TYPES = ("Notebook", "DataPipeline", "Dataflow", "SemanticModel", "Report")
+# Items from fabric/. Lakehouses, the warehouse and the eventhouse belong to Terraform; keeping
+# their types out of scope keeps unpublish_all_orphan_items from deleting them. KQL databases are in
+# scope (U12 kqldb_beds); fabric-cicd unpublishes them only with a feature flag never set here, and
+# TERRAFORM_ITEMS also guards the eventhouse's default database, named eh_beds like its parent.
+ITEM_TYPES = ("Notebook", "DataPipeline", "Dataflow", "SemanticModel", "Report", "KQLDatabase")
+TERRAFORM_ITEMS = r"^(lh_bronze|lh_silver|wh_gold|eh_beds)$"
 
 # Values parameter.yml takes from the environment ($ENV:<name>), set per GitHub environment.
 PARAMETER_VARIABLES = (
@@ -93,7 +96,7 @@ def deploy(repository: Path, environment: str, workspace_id: str, token: TokenCr
         token_credential=token,
     )
     publish_all_items(workspace)
-    unpublish_all_orphan_items(workspace)
+    unpublish_all_orphan_items(workspace, item_name_exclude_regex=TERRAFORM_ITEMS)
 
 
 def _call(token: TokenCredential, method: str, url: str) -> tuple[int, Message, dict]:
