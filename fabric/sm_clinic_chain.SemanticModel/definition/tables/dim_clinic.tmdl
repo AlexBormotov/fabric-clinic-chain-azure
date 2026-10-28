@@ -1,0 +1,19 @@
+/// Clinics. The RLS role `clinic` filters this table; facts and beds follow it.
+table dim_clinic
+
+	column clinic_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: clinic_id
+
+	column clinic_name
+		dataType: string
+		summarizeBy: none
+		sourceColumn: clinic_name
+
+	partition dim_clinic = entity
+		mode: directLake
+		source
+			entityName: dim_clinic
+			schemaName: gold
+			expressionSource: DatabaseQuery

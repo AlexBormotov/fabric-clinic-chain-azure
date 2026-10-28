@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/dev.Dockerfile
+      target: dev
     image: clinic-chain-dev:local
     environment:
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD-}
@@ -12,6 +13,20 @@ services:
       - uv-cache:/root/.cache/uv
       - venv:/opt/venv
       - ivy-cache:/root/.ivy2.5.2
+
+  # Cloud run only (`docker compose run --rm infra`): Terraform plus the Azure CLI. The CLI token cache
+  # lives in the azure-config volume; remove it with `docker volume rm` after teardown.
+  infra:
+    profiles: [cloud]
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+      target: infra
+    image: clinic-chain-infra:local
+    working_dir: /workspace/infra
+    volumes:
+      - .:/workspace
+      - azure-config:/root/.azure
 
   # Local source stand (`make up`): billing source on SQL Server, raw files on the Blob emulator.
   sqlserver:
@@ -69,6 +84,7 @@ services:
     mem_limit: 4g
 
 volumes:
+  azure-config:
   uv-cache:
   venv:
   ivy-cache:

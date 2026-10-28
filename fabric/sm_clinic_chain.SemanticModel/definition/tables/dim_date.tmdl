@@ -1,0 +1,42 @@
+/// Calendar of the analytical window, one row per day.
+table dim_date
+
+	/// Days of the window in the current filter.
+	measure window_days = COUNTROWS(dim_date)
+		formatString: 0
+		isHidden
+
+	column date_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: date_key
+
+	column calendar_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: calendar_date
+
+	column calendar_year
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: calendar_year
+
+	column calendar_month
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: calendar_month
+
+	column month_start
+		dataType: dateTime
+		formatString: yyyy-mm
+		summarizeBy: none
+		sourceColumn: month_start
+
+	partition dim_date = entity
+		mode: directLake
+		source
+			entityName: dim_date
+			schemaName: gold
+			expressionSource: DatabaseQuery

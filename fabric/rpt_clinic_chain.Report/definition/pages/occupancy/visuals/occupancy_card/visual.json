@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "occupancy_card",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 280,
+    "height": 140
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_bed_day"
+                    }
+                  },
+                  "Property": "occupancy_rate"
+                }
+              },
+              "queryRef": "fact_bed_day.occupancy_rate",
+              "nativeQueryRef": "occupancy_rate"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

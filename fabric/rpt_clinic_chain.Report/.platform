@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "rpt_clinic_chain",
+    "description": "Occupancy, quality and economics by clinic"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "712cb1a2-1547-4aee-a31a-ee5420243865"
+  }
+}

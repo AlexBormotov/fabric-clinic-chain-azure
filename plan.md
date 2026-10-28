@@ -3,7 +3,7 @@ id: PLAN-U12
 spec: SPEC-001 / U12
 owner: AlexBormotov
 status: approach A taken 2026-10-29 under the owner's standing go-ahead
-previous: PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16), PLAN-U13 (#15); see git history of this file
+previous: PLAN-U10 (#17), PLAN-U18 (#13), PLAN-U11 (#14); see git history of this file
 ---
 
 # PLAN-U12 — Eventhouse model

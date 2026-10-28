@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "alos_card",
+  "position": {
+    "x": 320,
+    "y": 20,
+    "z": 0,
+    "width": 280,
+    "height": 140
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_stay"
+                    }
+                  },
+                  "Property": "alos_days"
+                }
+              },
+              "queryRef": "fact_stay.alos_days",
+              "nativeQueryRef": "alos_days"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
