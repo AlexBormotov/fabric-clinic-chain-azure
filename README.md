@@ -29,6 +29,8 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make bed-history` | apply new ADT events to the SCD2 bed state history in `bed_state_history` |
 
 | `make quality` | Soda data contracts on Silver; fails when a check fails |
+
+| `make replay` | replay ADT events into the Event Hubs emulator at 50 events/s (`ARGS='--limit 2000'`) |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -79,6 +81,8 @@ counts.
   [`docs/contracts/billing.sql`](docs/contracts/billing.sql).
 - **Azurite** (for Blob Storage): containers `fhir` (`<clinic>/<patient>.json`), `lab` and `adt`.
 - **SharePoint**: the folder `data/sources/sharepoint/`.
+- **Event Hubs emulator** (for the Eventstream custom endpoint): event hub `adt`, 3 partitions,
+  with its own Azurite.
 
 Loading is idempotent. `make test-stand` checks that every table and container holds exactly what
 `data/sources/` and `data/raw/fhir/` hold.
@@ -179,3 +183,17 @@ claim lines and ADT events must reference existing encounters, claims and beds. 
 or cannot be evaluated fails the notebook, and with it the pipeline activity. On the full Silver all
 48 checks pass in 23 s. A fixture with one orphaned encounter fails the patient ↔ encounter check.
 How Soda runs on Runtime 2.0 is recorded in [ADR 0003](docs/adr/0003-soda-on-runtime-2.md).
+
+## ADT replay
+
+`scripts/replay_adt.py` sends `data/sources/adt/events.csv` over the Event Hubs protocol in
+event-time order, compressed so the whole replay averages `--rate` events/s (default 50; the full
+two years then take about 4.5 minutes). A seeded schedule sends exactly `--late-share` (default 5%)
+of events after an event with a later event time and `--duplicate-share` (3%) of events twice.
+The body is the contract row as JSON; the partition key is the clinic.
+
+The target is `--connection-string`, else `ADT_EVENTHUB_CONNECTION_STRING`, else the local
+emulator. An Eventstream custom endpoint connection string works unchanged.
+
+`make test-stand` replays 2,000 events at 50/s into the emulator, reads them back and checks every
+event arrived, the rate within 10% and the late and duplicate shares within 1 percentage point.

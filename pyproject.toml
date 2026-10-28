@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Clinic chain analytics and real-time bed monitoring on Microsoft Fabric"
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "azure-eventhub==5.15.1",
     "azure-storage-blob==12.31.0",
     "delta-spark==4.2.0",
     "mssql-python==1.16.0",
