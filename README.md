@@ -15,7 +15,8 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | Command | What it does |
 |---|---|
 | `make setup` | build the dev image and install Python dependencies |
-| `make lint` | ruff, sqlfluff, actionlint |
+| `make lint` | ruff, sqlfluff, actionlint, then `make tf-check` |
+| `make tf-check` | Terraform fmt and validate, tflint (offline, no cloud call) |
 | `make test` | pytest (fast tests) |
 | `make test-slow` | Synthea and source-derivation tests on the full population (~10 min) |
 | `make synth` | generate the synthetic population into `data/raw/fhir/` (~4 min, ~880 MB) |
@@ -27,6 +28,10 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make mpi` / `make mpi-eval` | match patient records into `patient_xref` / score it against ground truth |
 | `make gold` | copy Silver into the stand's SQL Server and build the Gold star schema (~30 s) |
 | `make bed-history` | apply new ADT events to the SCD2 bed state history in `bed_state_history` |
+
+| `make quality` | Soda data contracts on Silver; fails when a check fails |
+
+| `make replay` | replay ADT events into the Event Hubs emulator at 50 events/s (`ARGS='--limit 2000'`) |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -77,6 +82,8 @@ counts.
   [`docs/contracts/billing.sql`](docs/contracts/billing.sql).
 - **Azurite** (for Blob Storage): containers `fhir` (`<clinic>/<patient>.json`), `lab` and `adt`.
 - **SharePoint**: the folder `data/sources/sharepoint/`.
+- **Event Hubs emulator** (for the Eventstream custom endpoint): event hub `adt`, 3 partitions,
+  with its own Azurite.
 
 Loading is idempotent. `make test-stand` checks that every table and container holds exactly what
 `data/sources/` and `data/raw/fhir/` hold.
@@ -167,6 +174,38 @@ in the `bed_event` log are new. The beds they touch are recomputed from all thei
 applied with one Delta MERGE, so a late, duplicate or out-of-order event yields the same history as
 an in-order run. Tests cover each case; on the full population the history has no gaps or overlaps
 and its occupied intervals equal the stay segments in `adt_event`.
+
+## Data quality
+
+`nb_quality` runs after `nb_silver` and verifies Soda Core v4 data contracts (`soda-sparkdf`) on
+Silver: 48 checks over nine tables. They cover non-null and unique keys, value domains and ranges,
+and referential integrity. Every encounter's patient must be an EHR patient record; conditions,
+claim lines and ADT events must reference existing encounters, claims and beds. A check that fails
+or cannot be evaluated fails the notebook, and with it the pipeline activity. On the full Silver all
+48 checks pass in 23 s. A fixture with one orphaned encounter fails the patient ↔ encounter check.
+How Soda runs on Runtime 2.0 is recorded in [ADR 0003](docs/adr/0003-soda-on-runtime-2.md).
+
+## ADT replay
+
+`scripts/replay_adt.py` sends `data/sources/adt/events.csv` over the Event Hubs protocol in
+event-time order, compressed so the whole replay averages `--rate` events/s (default 50; the full
+two years then take about 4.5 minutes). A seeded schedule sends exactly `--late-share` (default 5%)
+of events after an event with a later event time and `--duplicate-share` (3%) of events twice.
+The body is the contract row as JSON; the partition key is the clinic.
+
+The target is `--connection-string`, else `ADT_EVENTHUB_CONNECTION_STRING`, else the local
+emulator. An Eventstream custom endpoint connection string works unchanged.
+
+`make test-stand` replays 2,000 events at 50/s into the emulator, reads them back and checks every
+event arrived, the rate within 10% and the late and duplicate shares within 1 percentage point.
+
+## Infrastructure
+
+[`infra/`](infra/README.md) holds the Terraform for the cloud run: Blob storage and the Azure SQL
+free offer, three Fabric workspaces (Dev, Test, Prod) with their lakehouses, warehouse and
+eventhouse, Git integration for Dev, a deployment pipeline and an F2 capacity that is created and
+destroyed once. Defaults take the cheapest path: workspaces on the Fabric trial, F2 off. The owner
+applies it with `az login`; nothing secret is committed.
 
 ## Semantic model and report
 

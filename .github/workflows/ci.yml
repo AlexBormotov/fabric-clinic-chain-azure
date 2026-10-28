@@ -43,6 +43,7 @@ jobs:
       - run: make mpi
       - run: make gold
       - run: make bed-history
+      - run: make quality
       - run: make test-stand
 
   secrets:
