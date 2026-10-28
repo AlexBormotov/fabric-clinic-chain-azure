@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold bed-history secrets up down
 
 setup:
 	docker compose build dev
@@ -54,6 +54,10 @@ mpi-eval:
 # Needs `make up` and `make mpi`: copies Silver into the stand's SQL Server and runs sql/gold/.
 gold:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/gold.py'
+
+# Needs `make silver`: applies new ADT events to data/lh_silver/Tables/bed_state_history.
+bed-history:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/bed_history.py'
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .

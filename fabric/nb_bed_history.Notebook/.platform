@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "nb_bed_history",
+    "description": "Build the SCD2 bed state history from ADT events, re-splitting intervals on late events"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "b04fc70e-364c-480a-ac75-6ee380cfc628"
+  }
+}
