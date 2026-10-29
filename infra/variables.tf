@@ -69,6 +69,12 @@ variable "deployer_principal_id" {
   default     = null
 }
 
+variable "phi_reader_group_id" {
+  description = "Object ID of the Entra group allowed to read PHI tables in lh_silver. Null: nobody."
+  type        = string
+  default     = null
+}
+
 variable "enable_f2" {
   description = "Create the F2 capacity ($0.44/h in West Europe). Apply true, check, apply false."
   type        = bool

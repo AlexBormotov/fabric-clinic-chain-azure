@@ -168,24 +168,46 @@ BEGIN
             event_time
         FROM silver.adt_event
         WHERE event_type = 'A03'
+    ),
+
+    stay AS (
+        SELECT
+            a.stay_id,
+            x.master_patient_id,
+            a.clinic_id,
+            a.event_time AS admitted_at,
+            d.event_time AS discharged_at
+        FROM admission AS a
+        INNER JOIN silver.patient_xref AS x
+            ON x.system = 'adt' AND a.adt_patient_id = x.local_patient_id
+        LEFT JOIN discharge AS d ON a.stay_id = d.stay_id
+        WHERE a.event_time >= @window_start AND a.event_time < @window_stop
     )
 
+    -- readmitted_30d looks at every stay of the window, at any clinic (GLOSSARY.md).
     INSERT INTO gold.fact_stay
     SELECT
-        a.stay_id,
-        x.master_patient_id,
-        a.clinic_id,
-        YEAR(a.event_time) * 10000 + MONTH(a.event_time) * 100 + DAY(a.event_time)
+        s.stay_id,
+        s.master_patient_id,
+        s.clinic_id,
+        YEAR(s.admitted_at) * 10000 + MONTH(s.admitted_at) * 100 + DAY(s.admitted_at)
             AS admit_date_key,
-        a.event_time AS admitted_at,
-        d.event_time AS discharged_at,
-        CAST(DATEDIFF(SECOND, a.event_time, d.event_time) / 86400.0 AS decimal(12, 6))
-            AS length_of_stay_days
-    FROM admission AS a
-    INNER JOIN silver.patient_xref AS x
-        ON x.system = 'adt' AND a.adt_patient_id = x.local_patient_id
-    LEFT JOIN discharge AS d ON a.stay_id = d.stay_id
-    WHERE a.event_time >= @window_start AND a.event_time < @window_stop;
+        s.admitted_at,
+        s.discharged_at,
+        CAST(DATEDIFF(SECOND, s.admitted_at, s.discharged_at) / 86400.0 AS decimal(12, 6))
+            AS length_of_stay_days,
+        CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM stay AS n
+                WHERE
+                    n.master_patient_id = s.master_patient_id
+                    AND n.admitted_at > s.discharged_at
+                    AND n.admitted_at <= DATEADD(DAY, 30, s.discharged_at)
+            ) THEN CAST(1 AS bit)
+            ELSE CAST(0 AS bit)
+        END AS readmitted_30d
+    FROM stay AS s;
 
     -- A01 and A02 start a segment in a bed; the stay's next event ends it. Open stays end at the
     -- window's end. Each segment is cut at midnights into calendar days.

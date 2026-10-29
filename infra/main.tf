@@ -28,6 +28,8 @@ module "fabric" {
   github_owner          = var.github_owner
   github_repository     = var.github_repository
   deployer_principal_id = var.deployer_principal_id
+  tenant_id             = data.azurerm_client_config.current.tenant_id
+  phi_reader_group_id   = var.phi_reader_group_id
 }
 
 module "capacity" {

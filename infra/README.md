@@ -6,7 +6,7 @@ git-ignored. CI runs `make tf-check` (fmt, validate, tflint) only; nothing here 
 | Module | Creates |
 |---|---|
 | `modules/azure-sources` | Resource group, Blob storage (`fhir`, `lab`, `adt`), Azure SQL server (Entra-only) and database `clinic_billing` on the free offer, firewall rules |
-| `modules/fabric` | Workspaces `clinic-chain-dev/test/prod` on the trial capacity; `lh_bronze`, `lh_silver`, `wh_gold`, `eh_beds` in each; Git integration for Dev; deployment pipeline Dev → Test → Prod; Contributor for the deployer on Test and Prod |
+| `modules/fabric` | Workspaces `clinic-chain-dev/test/prod` on the trial capacity; `lh_bronze`, `lh_silver`, `wh_gold`, `eh_beds` in each; Git integration for Dev; deployment pipeline Dev → Test → Prod; Contributor for the deployer on Test and Prod; OneLake security roles on `lh_silver` (`DefaultReader` narrowed to non-PHI tables, `PhiReader` for `phi_reader_group_id`; preview resource, ADR 0005) |
 | `modules/capacity` | F2 capacity in its own resource group, assigned to no workspace |
 
 Code items (notebooks, pipelines, dataflow, eventstream, model, report, dashboard, Activator) are

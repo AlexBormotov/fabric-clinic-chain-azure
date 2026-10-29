@@ -22,28 +22,16 @@ table fact_stay
 	measure bed_turnover_per_year = DIVIDE([discharges], [beds] * [window_days] / 365)
 		formatString: 0.0
 
-	/// Share of index stays (discharged at least 30 days before the window's end) followed by an admission of the same master patient within 30 days. GLOSSARY.md.
+	/// Share of index stays (discharged at least 30 days before the window's end) readmitted within 30 days, at any clinic. Averages the flag Gold precomputes over all stays, so clinic RLS cannot hide a readmission elsewhere. GLOSSARY.md.
 	measure readmission_30d_rate =
 			VAR cutoff = MAXX(ALL(dim_date), dim_date[calendar_date]) + 1 - 30
-			VAR index_stays =
-			    FILTER(
-			        fact_stay,
-			        NOT ISBLANK(fact_stay[discharged_at]) && fact_stay[discharged_at] < cutoff
-			    )
 			RETURN
 			    AVERAGEX(
-			        index_stays,
-			        VAR patient = fact_stay[master_patient_id]
-			        VAR discharged = fact_stay[discharged_at]
-			        VAR next_admissions =
-			            CALCULATE(
-			                COUNTROWS(fact_stay),
-			                REMOVEFILTERS(),
-			                fact_stay[master_patient_id] = patient,
-			                fact_stay[admitted_at] > discharged,
-			                fact_stay[admitted_at] <= discharged + 30
-			            )
-			        RETURN IF(next_admissions > 0, 1, 0)
+			        FILTER(
+			            fact_stay,
+			            NOT ISBLANK(fact_stay[discharged_at]) && fact_stay[discharged_at] < cutoff
+			        ),
+			        IF(fact_stay[readmitted_30d], 1, 0)
 			    )
 		formatString: 0.0%
 
@@ -88,6 +76,12 @@ table fact_stay
 		isHidden
 		summarizeBy: none
 		sourceColumn: length_of_stay_days
+
+	column readmitted_30d
+		dataType: boolean
+		isHidden
+		summarizeBy: none
+		sourceColumn: readmitted_30d
 
 	partition fact_stay = entity
 		mode: directLake

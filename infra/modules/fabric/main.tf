@@ -107,3 +107,65 @@ resource "fabric_workspace_role_assignment" "deployer" {
     type = "ServicePrincipal"
   }
 }
+
+# OneLake security on lh_silver (U17, ADR 0005). Table classes and the classes each role reads are in
+# lh_silver_roles.json, which tests/test_onelake_security.py checks against the notebooks.
+# DefaultReader is the lakehouse's built-in role (everyone with ReadAll); it is narrowed to non-PHI.
+# Workspace Admin, Member and Contributor bypass OneLake security: a reader who must not see PHI
+# holds only item Read and ReadAll on lh_silver, never a workspace role.
+locals {
+  silver_roles = jsondecode(file("${path.module}/lh_silver_roles.json"))
+  silver_paths = {
+    for role, classes in local.silver_roles.roles : role => sort(flatten([
+      for class in classes : [for table in local.silver_roles.tables[class] : "/Tables/${table}"]
+    ]))
+  }
+  silver = { for env in local.environments : env => fabric_lakehouse.lh["${env}.lh_silver"] }
+}
+
+resource "fabric_onelake_data_access_security" "silver_default_reader" {
+  for_each = local.silver
+
+  workspace_id = each.value.workspace_id
+  item_id      = each.value.id
+  role_name    = "DefaultReader"
+
+  decision_rules = [{
+    effect = "Permit"
+    permission = [
+      { attribute_name = "Path", attribute_value_included_in = local.silver_paths["DefaultReader"] },
+      { attribute_name = "Action", attribute_value_included_in = ["Read"] },
+    ]
+  }]
+
+  members = {
+    fabric_item_members = [{
+      item_access = ["ReadAll"]
+      source_path = "${each.value.workspace_id}/${each.value.id}"
+    }]
+  }
+}
+
+resource "fabric_onelake_data_access_security" "silver_phi_reader" {
+  for_each = var.phi_reader_group_id == null ? {} : local.silver
+
+  workspace_id = each.value.workspace_id
+  item_id      = each.value.id
+  role_name    = "PhiReader"
+
+  decision_rules = [{
+    effect = "Permit"
+    permission = [
+      { attribute_name = "Path", attribute_value_included_in = local.silver_paths["PhiReader"] },
+      { attribute_name = "Action", attribute_value_included_in = ["Read"] },
+    ]
+  }]
+
+  members = {
+    microsoft_entra_members = [{
+      object_id   = var.phi_reader_group_id
+      object_type = "Group"
+      tenant_id   = var.tenant_id
+    }]
+  }
+}

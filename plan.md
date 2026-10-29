@@ -1,109 +1,137 @@
 ---
-id: PLAN-U10
-spec: SPEC-001 / U10
+id: PLAN-U17
+spec: SPEC-001 / U17
 owner: AlexBormotov
-status: approach A taken 2026-10-28 under the owner's standing go-ahead
-previous: PLAN-U18 (#13), PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16); see git history of this file
+status: approach A taken 2026-10-29 under the owner's standing go-ahead
+previous: PLAN-U10 (#17), PLAN-U18 (#13), PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16); see git history of this file
 ---
 
-# PLAN-U10 — Semantic model and report
+# PLAN-U17 — OneLake security and model RLS
 
 ## Facts this plan rests on
 
-All read 2026-10-28.
+All read 2026-10-29.
 
-- **PBIP semantic model folder** (Learn "Power BI Desktop project semantic model folder", dated
-  2026-09-23): `definition.pbism` is required; `version` 4.0 or above allows TMDL in a `definition\`
-  folder instead of `model.bim`; `.platform` links the item to Fabric Git integration.
-- **PBIP report folder** (Learn "Power BI Desktop project report folder", dated 2026-09-23): PBIR is
-  generally available and the default; Fabric Git integration exports PBIR. `definition.pbir`
-  (`version` 4.0, `datasetReference.byPath`) and a `definition\` folder with `version.json`,
-  `report.json`, `pages\pages.json`, `pages\<page>\page.json`, `visuals\<visual>\visual.json`.
-  Git integration always writes `byPath` when model and report share a workspace.
-- **PBIR schemas** (github.com/microsoft/json-schemas, `fabric/item/report/definition`): required
-  keys measured from `page/2.0.0`, `report/3.0.0`, `visualContainer/2.4.0`, `pagesMetadata/1.0.0`,
-  `versionMetadata/1.0.0`, `definitionProperties/2.0.0`; `semanticModel/definitionProperties/1.0.0`.
-- **Direct Lake TMDL** (Learn "Develop Direct Lake semantic models", dated 2026-09-02):
-  `compatibilityLevel` 1604 or higher, partitions with `mode: directLake`, data source in a shared
-  expression. Direct Lake on OneLake uses the `AzureStorage.DataLake` connector against the item's
-  OneLake location and never falls back to DirectQuery. The URL form
-  `https://onelake.dfs.fabric.microsoft.com/<workspace id>/<item id>` with
-  `[HierarchicalNavigation=true]` is from Tabular Editor's docs (dated 2026-10-12); Learn shows it
-  only as a screenshot.
-- **TMDL syntax** (Learn "Tabular Model Definition Language", dated 2023-12-27, updated 2026-06-11):
-  tab indentation, three levels (declaration, properties, multi-line expression); `role` with
-  `modelPermission` and `tablePermission <table> = <DAX>`; `relationship` with
-  `fromColumn`/`toColumn`; one file per table and per role, one for all relationships and all
-  expressions.
-- **Direct Lake security** (Learn "Integrate Direct Lake security", dated 2025-09-22, updated
-  2026-09-09): model RLS is not enforced for users with Write on the model (workspace Admin,
-  Member, Contributor); with SSO, users who can read the source can bypass model RLS there; the
-  recommendation for model-only rules is a fixed-identity cloud connection.
-- **Same Delta table twice in one Direct Lake model** works in Desktop but has open service errors
-  (Chris Webb's blog, 2024-09-29 and 2026-04-05). Not used.
-- **Python TMDL parsers on PyPI**: `tmdl` 0.0.1 (single release, no documentation), `pytmdl`
-  0.1.1a1 (alpha). Neither suitable; a structural parser of about 150 lines is written instead.
+- **OneLake data access roles REST API** (Learn "OneLake Data Access Security - Create Or Update
+  Data Access Roles", updated 2026-09-15): `PUT /v1/workspaces/{ws}/items/{item}/dataAccessRoles`
+  replaces the full role set; a role has `decisionRules` (`effect: Permit`, exactly two `permission`
+  scopes `Path` and `Action`, optional row/column `constraints`) and `members`
+  (`fabricItemMembers` with `itemAccess` + `sourcePath`, `microsoftEntraMembers` with
+  `objectId`/`objectType`/`tenantId`). Single-role upsert and delete exist. Paths look like
+  `/Tables/<name>`.
+- **Terraform** (`microsoft/fabric` 1.14.0, pinned in `infra/versions.tf`; provider docs at tag
+  `v1.14.0`): resource `fabric_onelake_data_access_security`, one role per resource (`workspace_id`,
+  `item_id`, `role_name`, `decision_rules`, `members`), **preview**: needs `preview = true` on the
+  provider. Import id `<ws>/<item>/<role>`.
+- **Lakehouse Git integration** (Learn "Lakehouse git integration and deployment pipelines", dated
+  2026-10-13): data access roles are tracked in `data-access-roles.json`, **preview**, off by
+  default (`alm.settings.json`); Entra member IDs are not tracked; only Admin/Member can sync them.
+- **OneLake security model** (Learn "OneLake security roles, permissions, and scopes", dated
+  2026-08-28): deny by default; roles are grant-only and combine as a union; a lakehouse starts with
+  `DefaultReader` (Read on everything for users with ReadAll); with OneLake security, ReadAll grants
+  data only through `DefaultReader`; Admin, Member and Contributor bypass roles (Write). Role
+  changes take about 5 minutes, group changes about an hour.
+- **Role names** (Learn "OneLake security roles: create and manage", dated 2026-09-25):
+  alphanumeric, start with a letter, case-insensitive.
+- **Direct Lake security** (Learn "Integrate Direct Lake security", updated 2026-09-09): Direct Lake
+  on OneLake checks OneLake security for the effective identity (current user with SSO, or the fixed
+  identity of a bound cloud connection); it never falls back to DirectQuery, failures are errors.
+  Model RLS is not enforced for users with Write on the model (Admin, Member, Contributor). For
+  model-only rules, bind a fixed identity with SSO off and give users no permission on the source.
+  With OneLake security on a lakehouse, its SQL analytics endpoint defaults to delegated (owner)
+  identity; switching it to user identity forces Direct Lake on SQL to DirectQuery.
+- **Engines that enforce OneLake RLS/CLS** (Learn "Read data secured with OneLake security", dated
+  2026-08-28): Direct Lake on OneLake models, Spark, Lakehouse, SQL endpoint in user identity mode.
+- **Silver tables** (this repo): `nb_silver` writes `TABLES`, `FHIR_TABLES`, `patient_record` and
+  `reconciliation`; `nb_mpi` writes `patient_xref`, `patient_match_review`; `nb_bed_history` writes
+  `bed_state_history`, `bed_event`. 17 tables.
+
+## PHI classification of Silver
+
+PHI class (readable only by `PhiReader`): `patient_record` (names, birth date, phone, postal code)
+and `staff` (staff names; personal data, kept with PHI so no name column is in the open class).
+Everything else is non-PHI, by the rule U16 uses for Gold: local patient IDs, `master_patient_id`
+and event dates do not identify a person without the demographics in `patient_record`.
 
 ## Approaches
 
-- **A (taken).** Direct Lake on OneLake over the Gold Warehouse tables (`schemaName: gold`),
-  hand-written TMDL and PBIR in `fabric/`. Facts without PHI; `dim_patient` stays out. Measures
-  named exactly as the metrics in `GLOSSARY.md`. Dynamic RLS: one role `clinic` filters
-  `dim_clinic` to the clinics mapped to `USERPRINCIPALNAME()` in a new Gold table
-  `gold.user_clinic`, which survives `gold.reload` and is filled per environment in U17 (never
-  committed).
-- B. Direct Lake on SQL over the Warehouse endpoint. Rejected: the metric views and U16's
-  CLS/DDM would push queries to DirectQuery fallback; the spec names Direct Lake on OneLake.
-- C. Static RLS, one role per clinic. Rejected: the model changes whenever a clinic is added, and
-  the spec asks for a single `clinic` role mapped by user.
+- **A (taken).** Terraform `fabric_onelake_data_access_security` on each environment's `lh_silver`,
+  role contents from `infra/modules/fabric/lh_silver_roles.json` (table classes `phi`/`non_phi`,
+  roles listing classes). `DefaultReader` is narrowed to `non_phi` (members: everyone with ReadAll),
+  `PhiReader` reads both classes (members: one Entra group, optional variable). Provider `preview`
+  turned on.
+- B. Lakehouse Git integration (`data-access-roles.json`). Rejected: preview and opt-in; the
+  lakehouse shells are Terraform-owned and not in `fabric/`; members are not tracked, so a second
+  mechanism is needed anyway.
+- C. JSON plus a script calling `PUT dataAccessRoles`. Rejected: Terraform supports the resource,
+  and a script adds a second deployment path and a credential flow.
+
+RLS membership: one Entra group is the member of the model role `clinic`, assigned after deploy
+(U20); per-user clinic scope is a row in `gold.user_clinic`, written from a git-ignored copy of
+`sql/fabric/user_clinic.example.sql` (placeholder UPNs on `example.com`).
+
+Readmission fix: `gold.fact_stay.readmitted_30d` (bit) computed in `gold.reload` over every stay of
+the window via `master_patient_id`; the DAX measure and `gold.metric_summary` average the flag.
 
 ## Files
 
-- `fabric/sm_clinic_chain.SemanticModel/`: `.platform`, `definition.pbism`, `definition/`
-  (`database.tmdl`, `model.tmdl`, `expressions.tmdl`, `relationships.tmdl`, `tables/*.tmdl`,
-  `roles/clinic.tmdl`).
-- `fabric/rpt_clinic_chain.Report/`: `.platform`, `definition.pbir`, `definition/` (three pages:
-  occupancy, quality, economics).
-- `sql/gold/30_access.sql` (`gold.user_clinic`).
-- `src/clinic_chain/tmdl.py`, `tests/test_semantic_model.py`.
-- `README.md`, `plan.md`.
+- `infra/versions.tf` (provider `preview = true`), `infra/main.tf`, `infra/variables.tf`,
+  `infra/terraform.tfvars.example`, `infra/modules/fabric/{main,variables}.tf`,
+  `infra/modules/fabric/lh_silver_roles.json`.
+- `sql/gold/00_tables.sql`, `sql/gold/10_reload.sql`, `sql/gold/20_metrics.sql`.
+- `fabric/sm_clinic_chain.SemanticModel/definition/tables/fact_stay.tmdl`.
+- `sql/fabric/user_clinic.example.sql`, `.gitignore`.
+- `tests/test_onelake_security.py`, `tests/test_semantic_model.py`.
+- `docs/adr/0005-direct-lake-vs-phi-security.md`, `README.md`, `GLOSSARY.md`, `tasks/todo.md`,
+  `plan.md`.
 
 ## Invariants and the checks that go red
 
-All in `tests/test_semantic_model.py`, fast (`make test`):
+Fast (`make test`), `tests/test_onelake_security.py`:
 
-- TMDL parses; every table has one `directLake` entity partition on `gold.<table>` through a
-  declared expression (`test_model_parses_into_direct_lake_tables`).
-- Every model column is a column of that Gold table, with a compatible type
-  (`test_model_columns_exist_in_gold`).
-- No PHI: no column sourced from `dim_patient`'s PHI columns (its columns minus the key, sex,
-  home clinic and record count) and no column name matching name/birth/phone/address/postal/SSN
-  patterns outside an allowlist (`test_model_has_no_phi_columns`).
-- Every metric in the `GLOSSARY.md` table has a measure of the same name
-  (`test_every_glossary_metric_has_a_measure`).
-- Every `table[column]` reference in measures and role filters resolves
-  (`test_dax_references_resolve`); relationships join existing columns
-  (`test_relationships_join_model_columns`).
-- Role `clinic` filters `dim_clinic` through `user_clinic` and `USERPRINCIPALNAME()`
-  (`test_clinic_role_filters_by_user`).
-- The report binds by path to the model, has the three contour pages, and every field it shows
-  exists in the model (`test_report_fields_exist_in_the_model`).
-- Every `fabric/*/.platform` has a distinct uuid4 `logicalId` (`test_platform_logical_ids`).
+- Every Silver table written by a notebook is in exactly one class
+  (`test_every_silver_table_is_in_exactly_one_class`).
+- A Silver table with a name, birth, phone, address or postal column is in `phi`
+  (`test_tables_with_phi_columns_are_phi`).
+- Only `PhiReader` reads the `phi` class; `DefaultReader` exists and reads `non_phi`
+  (`test_only_the_phi_role_reads_phi`).
+- Every role in the JSON has a Terraform resource reading the JSON, and role names are valid
+  (`test_terraform_defines_every_role`).
+- The RLS membership template has only `example.com` UPNs and known clinics, and its real copy is
+  git-ignored (`test_user_clinic_template_has_no_real_upns`).
 
-Negative control, run 2026-10-28: a `dim_patient` table with `given_name` added to the model made
-`test_model_has_no_phi_columns` fail (`('dim_patient', 'given_name')`) while the other nine tests
-passed; the file was then removed.
+Fast, `tests/test_semantic_model.py`: `readmission_30d_rate` averages `fact_stay[readmitted_30d]`
+and has no cross-stay lookup that RLS would cut (`test_readmission_uses_the_precomputed_flag`).
 
-Measure values are checked against U09's reference in the cloud run (U20), as the spec says.
+Stand (`make test-stand`): `tests/test_metrics.py::test_gold_metrics_match_the_reference` (Gold
+equals the U09 reference to a relative 1e-6), with `gold.metric_summary` reading the flag.
 
-## Known limit handed to U17
+`make lint` runs `terraform validate` against the provider schema.
 
-`readmission_30d_rate` counts a readmission at any clinic. Under the `clinic` role, RLS also hides
-the other clinics' stays, so a clinic user sees only same-clinic readmissions. The fix is a
-precomputed `readmitted_30d` flag on `gold.fact_stay`; it needs a stand run of `make gold` and the
-U09 comparison, so it is left to U17 (which owns RLS) rather than changed here without the stand.
+Negative controls, run 2026-10-29, then reverted:
+
+- `patient_record` moved from `phi` to `non_phi` in the JSON: `test_tables_with_phi_columns_are_phi`
+  failed (`{'patient_record'}`), the other four passed.
+- The U10 measure (cross-stay lookup) restored in `fact_stay.tmdl`:
+  `test_readmission_uses_the_precomputed_flag` failed, the other ten passed.
+
+Stand result, 2026-10-29: `make gold`, then the `stand` tests of `test_gold.py` and
+`test_metrics.py`: 7 passed. On the current synthetic data every 30-day readmission is at the same
+clinic (any clinic / same clinic: boston 162/162, springfield 270/270, worcester 211/211), so the
+U10 bug was latent here; the flag makes the measure correct when a patient moves between clinics.
+
+## Verified in U20 (cloud)
+
+- Terraform creates both roles; overriding `DefaultReader` by name works (else import it first).
+- A user with only ReadAll on `lh_silver` reads `encounter` but gets access denied on
+  `patient_record` (Spark and OneLake API); a `PhiReader` member reads it.
+- Gold reload still reads `silver.patient_record` through the SQL endpoint (delegated mode).
+- A clinic user (model Read only, fixed-identity connection) sees only their clinic, and
+  `readmission_30d_rate` per clinic equals `gold.metric_summary`.
+- Redeploying the model keeps the `clinic` role member.
+- ADR 0005's fallback experiment, if Direct Lake on OneLake fails.
 
 ## Reversal
 
-Revert the PR. The Fabric items disappear from Git; `gold.user_clinic` is dropped by hand
-(`DROP TABLE gold.user_clinic`), as no reload drops it.
+Revert the PR. `terraform apply` then deletes `PhiReader` and the managed `DefaultReader`; recreate
+`DefaultReader` with all data in the portal. `make gold` rebuilds `fact_stay` without the column.
