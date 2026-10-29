@@ -3,14 +3,30 @@ services:
     build:
       context: .
       dockerfile: docker/dev.Dockerfile
+      target: dev
     image: clinic-chain-dev:local
     environment:
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD-}
+      ADT_EVENTHUB_CONNECTION_STRING: ${ADT_EVENTHUB_CONNECTION_STRING-}
     volumes:
       - .:/workspace
       - uv-cache:/root/.cache/uv
       - venv:/opt/venv
       - ivy-cache:/root/.ivy2.5.2
+
+  # Cloud run only (`docker compose run --rm infra`): Terraform plus the Azure CLI. The CLI token cache
+  # lives in the azure-config volume; remove it with `docker volume rm` after teardown.
+  infra:
+    profiles: [cloud]
+    build:
+      context: .
+      dockerfile: docker/dev.Dockerfile
+      target: infra
+    image: clinic-chain-infra:local
+    working_dir: /workspace/infra
+    volumes:
+      - .:/workspace
+      - azure-config:/root/.azure
 
   # Local source stand (`make up`): billing source on SQL Server, raw files on the Blob emulator.
   sqlserver:
@@ -36,7 +52,39 @@ services:
       timeout: 2s
       retries: 30
 
+  # ADT stream stand-in for Eventstream (U11). The image has no shell; `make up` polls :5300/health.
+  eventhubs:
+    image: mcr.microsoft.com/azure-messaging/eventhubs-emulator:2.2.1
+    environment:
+      ACCEPT_EULA: "Y"
+      BLOB_SERVER: eventhubs-azurite
+      METADATA_SERVER: eventhubs-azurite
+    volumes:
+      - ./config/eventhubs.json:/Eventhubs_Emulator/ConfigFiles/Config.json:ro
+    depends_on:
+      eventhubs-azurite:
+        condition: service_healthy
+
+  # The emulator's own storage (blob and table), kept apart from the source stand's Azurite.
+  eventhubs-azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --skipApiVersionCheck --loose
+    healthcheck:
+      test: nc -z 127.0.0.1 10002
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # Eventhouse stand-in (U12): the Kusto emulator, no auth, HTTP on :8080. Heavy (4.5 GB image);
+  # `make kql-test` starts it alone and removes it afterwards. Not part of `make up`.
+  kusto:
+    image: mcr.microsoft.com/azuredataexplorer/kustainer-linux:2026.10.13.0655-2640-482fe45-weeklyproduction
+    environment:
+      ACCEPT_EULA: "Y"
+    mem_limit: 4g
+
 volumes:
+  azure-config:
   uv-cache:
   venv:
   ivy-cache:

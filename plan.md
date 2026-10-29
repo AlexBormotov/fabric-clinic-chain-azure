@@ -3,7 +3,7 @@ id: PLAN-U16
 spec: SPEC-001 / U16
 owner: AlexBormotov
 status: approach A taken 2026-10-28 under the owner's standing go-ahead
-previous: PLAN-U09 (#16), PLAN-U13 (#15), PLAN-U08 (#11); see git history of this file
+previous: PLAN-U12 (#20), PLAN-U10 (#17), PLAN-U18 (#13), PLAN-U09 (#16); see git history of this file
 ---
 
 # PLAN-U16 — Warehouse PHI protection

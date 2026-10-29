@@ -1,0 +1,18 @@
+{
+  "UserConfig": {
+    "NamespaceConfig": [
+      {
+        "Type": "EventHub",
+        "Name": "emulatorNs1",
+        "Entities": [
+          {
+            "Name": "adt",
+            "PartitionCount": 3,
+            "ConsumerGroups": [{"Name": "replay-check"}]
+          }
+        ]
+      }
+    ],
+    "LoggingConfig": {"Type": "Console"}
+  }
+}

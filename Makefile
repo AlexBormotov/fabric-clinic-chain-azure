@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history secrets up down
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history quality replay kql-test secrets up down tf-check
 
 setup:
 	docker compose build dev
@@ -18,6 +18,15 @@ lint:
 		&& uv run ruff format --check . \
 		&& if [ -d sql ]; then uv run sqlfluff lint sql; fi \
 		&& actionlint'
+	$(MAKE) tf-check
+
+# Offline: fmt, provider schema validation and tflint. Never plans or applies (no cloud call).
+tf-check:
+	$(RUN) sh -c 'cd infra \
+		&& terraform fmt -check -recursive -diff \
+		&& terraform init -backend=false -input=false -no-color > /dev/null \
+		&& terraform validate -no-color \
+		&& tflint --recursive --config "$$PWD/.tflint.hcl"'
 
 test:
 	$(RUN) sh -c 'uv sync --frozen --quiet && uv run pytest'
@@ -63,6 +72,22 @@ metric-reference:
 bed-history:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/bed_history.py'
 
+# Needs `make silver`: Soda data contracts on data/lh_silver/; fails when a check fails.
+quality:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/quality.py'
+
+# Needs `make up`: replays data/sources/adt/events.csv into the Event Hubs emulator, or into
+# ADT_EVENTHUB_CONNECTION_STRING when set. Pass options with ARGS, e.g. ARGS='--limit 2000'.
+replay:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/replay_adt.py $(ARGS)'
+
+# KQL schema tests on the Kusto emulator, started alone and removed afterwards (4 GB cap).
+# Run it without `make up`: the emulator does not share the host with the source stand.
+kql-test:
+	docker compose up -d kusto
+	$(RUN) sh -c 'uv sync --frozen --quiet && uv run pytest -m kusto'; status=$$?; \
+		docker compose rm -sf kusto; exit $$status
+
 secrets:
 	$(RUN) gitleaks git --redact --verbose .
 
@@ -71,7 +96,7 @@ secrets:
 	printf 'MSSQL_SA_PASSWORD=Sa1-%s\n' "$$(head -c 18 /dev/urandom | base64 | tr -d '+/=')" > .env
 
 up: .env
-	docker compose up -d --wait sqlserver azurite
+	docker compose up -d --wait sqlserver azurite eventhubs-azurite eventhubs
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/load_stand.py'
 
 down:

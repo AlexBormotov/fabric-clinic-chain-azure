@@ -1,4 +1,6 @@
-"""Load the local source stand: billing into SQL Server, FHIR, lab and ADT files into Azurite."""
+"""Load the local source stand: billing into SQL Server, FHIR, lab and ADT files into Azurite.
+
+Also waits for the Event Hubs emulator (U11), which `make up` starts with the stand."""
 
 import argparse
 from pathlib import Path
@@ -19,6 +21,8 @@ def main() -> None:
     print(f"sql: {stand.DATABASE}")
     stand.upload(stand.blob_files(args.sources, args.fhir))
     print("blob: fhir, lab, adt")
+    stand.wait_eventhubs()
+    print("eventhubs: healthy")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,22 @@
+/// User-to-clinic mapping read by the RLS role `clinic`; rows are maintained per environment.
+table user_clinic
+	isHidden
+
+	column user_principal_name
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: user_principal_name
+
+	column clinic_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: clinic_id
+
+	partition user_clinic = entity
+		mode: directLake
+		source
+			entityName: user_clinic
+			schemaName: gold
+			expressionSource: DatabaseQuery

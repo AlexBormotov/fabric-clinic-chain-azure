@@ -1,0 +1,62 @@
+/// Billing claims; denied claims have zero paid.
+table fact_claim
+
+	/// Claims in scope.
+	measure claims = COUNTROWS(fact_claim)
+		formatString: #,##0
+		isHidden
+
+	/// Paid amount / beds / (days / 365). GLOSSARY.md.
+	measure revenue_per_bed_per_year = DIVIDE(SUM(fact_claim[paid_amount]), [beds] * [window_days] / 365)
+		formatString: #,##0
+
+	/// Denied claims / all claims, by count. GLOSSARY.md.
+	measure claim_denial_rate = DIVIDE(CALCULATE([claims], fact_claim[status] = "denied"), [claims])
+		formatString: 0.0%
+
+	/// Each payer's share of claims, by count. GLOSSARY.md.
+	measure payer_mix = DIVIDE([claims], CALCULATE([claims], REMOVEFILTERS(dim_payer)))
+		formatString: 0.0%
+
+	column claim_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: claim_id
+
+	column clinic_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: clinic_id
+
+	column payer
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: payer
+
+	column service_date_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: service_date_key
+
+	column paid_amount
+		dataType: double
+		isHidden
+		summarizeBy: none
+		sourceColumn: paid_amount
+
+	column status
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: status
+
+	partition fact_claim = entity
+		mode: directLake
+		source
+			entityName: fact_claim
+			schemaName: gold
+			expressionSource: DatabaseQuery

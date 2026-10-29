@@ -4,6 +4,8 @@ The SharePoint stand-in is the folder `data/sources/sharepoint/` itself; nothing
 """
 
 import os
+import time
+import urllib.request
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -21,6 +23,9 @@ AZURITE = (
     "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;"
     "BlobEndpoint=http://azurite:10000/devstoreaccount1;"
 )
+
+
+EVENTHUBS_HEALTH = "http://eventhubs:5300/health"
 
 
 def sql(
@@ -94,3 +99,18 @@ def upload(files: dict[str, dict[str, Path]]) -> None:
         for blob, path in wanted.items():
             with path.open("rb") as f:
                 container.upload_blob(blob, f, overwrite=True)
+
+
+def wait_eventhubs(timeout_s: float = 180) -> None:
+    """Block until the Event Hubs emulator is healthy; its image has no shell for a healthcheck."""
+    deadline = time.monotonic() + timeout_s
+    while True:
+        try:
+            with urllib.request.urlopen(EVENTHUBS_HEALTH, timeout=5) as response:
+                if response.status == 200:
+                    return
+        except OSError:
+            pass
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"{EVENTHUBS_HEALTH} not healthy after {timeout_s} s")
+        time.sleep(2)
