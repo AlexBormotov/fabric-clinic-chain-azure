@@ -1,109 +1,129 @@
 ---
-id: PLAN-U10
-spec: SPEC-001 / U10
+id: PLAN-U12
+spec: SPEC-001 / U12
 owner: AlexBormotov
-status: approach A taken 2026-10-28 under the owner's standing go-ahead
-previous: PLAN-U18 (#13), PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16); see git history of this file
+status: approach A taken 2026-10-29 under the owner's standing go-ahead
+previous: PLAN-U10 (#17), PLAN-U18 (#13), PLAN-U11 (#14); see git history of this file
 ---
 
-# PLAN-U10 — Semantic model and report
+# PLAN-U12 — Eventhouse model
 
-## Facts this plan rests on
+## Facts this plan rests on (read 2026-10-29)
 
-All read 2026-10-28.
+- Kusto emulator (Learn "Install the Azure Data Explorer Kusto emulator", `ms.date` 2026-07-23;
+  "Kusto emulator overview", `ms.date` 2025-12-11):
+  - Linux image `mcr.microsoft.com/azuredataexplorer/kustainer-linux`; docs say use `latest` or
+    `stable`. MCR tag list has no `stable`; `latest` (digest `046cae99…`) is the master build
+    `2026.10.28.1608-2643-05affc6-master`, so it moves daily. Pinned:
+    `2026.10.13.0655-2640-482fe45-weeklyproduction` (digest `6cc5f566…`, 16 days old, 4.5 GB).
+  - `ACCEPT_EULA=Y`; at least 2 GB RAM, 4 GB recommended (docs run it with `-m 4G`); x64 with
+    SSE4.2/AVX2, no ARM; HTTP only on port 8080, no auth, no HTTPS.
+  - Readiness: `POST /v1/rest/mgmt` with `.show cluster` returns 200.
+  - Limits: no managed (queued) ingestion, no Event Hubs/IoT Hub/Event Grid connectors, no
+    streaming ingestion, no ingest endpoint; ingestion only by commands (`.ingest`, `.set`,
+    `.append`, from files or inline); no extent merge; retention and partitioning policies are
+    accepted but not honoured; no Python plugin. Update policies are not listed as a limit.
+- `azure-kusto-data` on PyPI: latest 6.0.4, uploaded 2026-05-06.
+- Fabric Git format for a KQL database (Learn "Eventhouse and KQL database - Git integration",
+  updated 2026-02-17; "KQL Database item definition", 2024-11-12): folder `<name>.KQLDatabase`
+  with `.platform` (type `KQLDatabase`), `DatabaseProperties.json` (`databaseType` `ReadWrite`,
+  `parentEventhouseItemId` = logical ID of the parent eventhouse, `oneLakeCachingPeriod`,
+  `oneLakeStandardStoragePeriod`) and `DatabaseSchema.kql`, a database script run on sync that
+  may contain only: `.create-merge table`, `.create-or-alter function`, `.alter table … policy
+  update`, `.alter … encoding policy`, `.create-or-alter materialized-view`, `.create-or-alter
+  table … ingestion mapping`. No data commands.
+- Eventstream → Eventhouse (Learn "Add an Eventhouse destination", updated 2026-02-17): in
+  *Direct ingestion* mode the Get data wizard picks an existing table, format JSON and, under
+  Advanced, an existing mapping. *Event processing before ingestion* maps columns itself.
+- Terraform (`origin/u18-terraform`, `infra/modules/fabric/main.tf`): creates eventhouse
+  `eh_beds`, whose default KQL database is also named `eh_beds`; code items come from Git via
+  `fabric-cicd` (U19).
+- Wire format (`src/clinic_chain/adt_replay.py`): the body is the contract row as JSON,
+  `event_id` an int, `event_time` `"YYYY-MM-DD HH:MM:SS"`, empty fields `null`; copies repeat
+  `event_id`; late events arrive after an event with a later `event_time`.
+- Batch semantics (`fabric/nb_bed_history.Notebook`): A01/A02 occupy `bed_id`, A02 frees
+  `from_bed_id`, A03 frees `bed_id`; per bed, changes order by `event_time`, then free before
+  occupied, then `event_id`; duplicates by `event_id` collapse.
 
-- **PBIP semantic model folder** (Learn "Power BI Desktop project semantic model folder", dated
-  2026-09-23): `definition.pbism` is required; `version` 4.0 or above allows TMDL in a `definition\`
-  folder instead of `model.bim`; `.platform` links the item to Fabric Git integration.
-- **PBIP report folder** (Learn "Power BI Desktop project report folder", dated 2026-09-23): PBIR is
-  generally available and the default; Fabric Git integration exports PBIR. `definition.pbir`
-  (`version` 4.0, `datasetReference.byPath`) and a `definition\` folder with `version.json`,
-  `report.json`, `pages\pages.json`, `pages\<page>\page.json`, `visuals\<visual>\visual.json`.
-  Git integration always writes `byPath` when model and report share a workspace.
-- **PBIR schemas** (github.com/microsoft/json-schemas, `fabric/item/report/definition`): required
-  keys measured from `page/2.0.0`, `report/3.0.0`, `visualContainer/2.4.0`, `pagesMetadata/1.0.0`,
-  `versionMetadata/1.0.0`, `definitionProperties/2.0.0`; `semanticModel/definitionProperties/1.0.0`.
-- **Direct Lake TMDL** (Learn "Develop Direct Lake semantic models", dated 2026-09-02):
-  `compatibilityLevel` 1604 or higher, partitions with `mode: directLake`, data source in a shared
-  expression. Direct Lake on OneLake uses the `AzureStorage.DataLake` connector against the item's
-  OneLake location and never falls back to DirectQuery. The URL form
-  `https://onelake.dfs.fabric.microsoft.com/<workspace id>/<item id>` with
-  `[HierarchicalNavigation=true]` is from Tabular Editor's docs (dated 2026-10-12); Learn shows it
-  only as a screenshot.
-- **TMDL syntax** (Learn "Tabular Model Definition Language", dated 2023-12-27, updated 2026-06-11):
-  tab indentation, three levels (declaration, properties, multi-line expression); `role` with
-  `modelPermission` and `tablePermission <table> = <DAX>`; `relationship` with
-  `fromColumn`/`toColumn`; one file per table and per role, one for all relationships and all
-  expressions.
-- **Direct Lake security** (Learn "Integrate Direct Lake security", dated 2025-09-22, updated
-  2026-09-09): model RLS is not enforced for users with Write on the model (workspace Admin,
-  Member, Contributor); with SSO, users who can read the source can bypass model RLS there; the
-  recommendation for model-only rules is a fixed-identity cloud connection.
-- **Same Delta table twice in one Direct Lake model** works in Desktop but has open service errors
-  (Chris Webb's blog, 2024-09-29 and 2026-04-05). Not used.
-- **Python TMDL parsers on PyPI**: `tmdl` 0.0.1 (single release, no documentation), `pytmdl`
-  0.1.1a1 (alpha). Neither suitable; a structural parser of about 150 lines is written instead.
+## Settings for every approach
 
-## Approaches
+- Item `fabric/kqldb_beds.KQLDatabase/` (child of Terraform's `eh_beds`; a distinct name avoids
+  colliding with its default database). `parentEventhouseItemId` is a zero GUID placeholder, as the
+  notebooks do for lakehouse IDs; U19 binds it to `eh_beds`.
+- `adt_raw (payload:dynamic)` with JSON mapping `adt_raw_json` (`$` → `payload`); the Eventstream
+  destination uses Direct ingestion with that table and mapping. A schema change in the producer
+  never fails ingestion.
+- Update policy (transactional) `adt_parse()` → `adt_event` with the contract columns plus
+  `ingested_at = ingestion_time()` for the latency measurement in U14.
+- `bed` reference table: the SharePoint beds sheet (contract `sharepoint.beds`, Silver table
+  `bed`). It is data, so not in the schema script; in Fabric it is loaded from `lh_silver.bed`
+  (U14/U20). A bed without events counts as free.
+- `bed_changes()`, `bed_current()` (`arg_max` per bed), `ward_occupancy()` (beds and occupied
+  beds per ward from `bed`, `occupancy` = occupied / beds, rounded to 4 places). The dashboard and
+  the Activator rule (U14) read `ward_occupancy()`.
 
-- **A (taken).** Direct Lake on OneLake over the Gold Warehouse tables (`schemaName: gold`),
-  hand-written TMDL and PBIR in `fabric/`. Facts without PHI; `dim_patient` stays out. Measures
-  named exactly as the metrics in `GLOSSARY.md`. Dynamic RLS: one role `clinic` filters
-  `dim_clinic` to the clinics mapped to `USERPRINCIPALNAME()` in a new Gold table
-  `gold.user_clinic`, which survives `gold.reload` and is filled per environment in U17 (never
-  committed).
-- B. Direct Lake on SQL over the Warehouse endpoint. Rejected: the metric views and U16's
-  CLS/DDM would push queries to DirectQuery fallback; the spec names Direct Lake on OneLake.
-- C. Static RLS, one role per clinic. Rejected: the model changes whenever a clinic is added, and
-  the spec asks for a single `clinic` role mapped by user.
+## The choice: how current state is kept
 
-## Files
+### Approach A — query-time `arg_max` over all events (taken)
 
-- `fabric/sm_clinic_chain.SemanticModel/`: `.platform`, `definition.pbism`, `definition/`
-  (`database.tmdl`, `model.tmdl`, `expressions.tmdl`, `relationships.tmdl`, `tables/*.tmdl`,
-  `roles/clinic.tmdl`).
-- `fabric/rpt_clinic_chain.Report/`: `.platform`, `definition.pbir`, `definition/` (three pages:
-  occupancy, quality, economics).
-- `sql/gold/30_access.sql` (`gold.user_clinic`).
-- `src/clinic_chain/tmdl.py`, `tests/test_semantic_model.py`.
-- `README.md`, `plan.md`.
+`bed_current()` takes `arg_max` per bed over every change. One key encodes the batch order:
+`(seconds since 2000 * 2 + occupied) * 10^9 + event_id`.
 
-## Invariants and the checks that go red
+- Files: `fabric/kqldb_beds.KQLDatabase/{.platform,DatabaseProperties.json,DatabaseSchema.kql}`,
+  `tests/test_kql.py`, `docker-compose.yml` (`kusto`), `Makefile` (`kql-test`),
+  `.github/workflows/ci.yml` (`kql` job), `pyproject.toml`, `uv.lock`, `README.md`, `CLAUDE.md`,
+  `plan.md`.
+- Invariants: arrival order never matters; a copy never double counts; the current state per bed
+  equals the open interval of `nb_bed_history` for the same events; the script holds only commands
+  Fabric sync accepts; `adt_event` columns equal the contract.
+- Red checks: `kusto` tests (four arrival orders against one expected state and occupancy);
+  fast tests (allowed commands, columns vs contracts, references, update policy and mapping,
+  item files, scenario vs the Spark notebook).
+- Limits accepted: the key needs whole-second times before 2136 and `event_id` < 10^9 (contract
+  times are whole seconds; 13,125 events today). Query cost grows with history; at ~13k events
+  per 2 years it is negligible.
+- Reverse: delete the item folder, the test, the compose service, the Makefile target and the CI
+  job; drop the dependency.
 
-All in `tests/test_semantic_model.py`, fast (`make test`):
+### Approach B — materialized view `arg_max` per bed
 
-- TMDL parses; every table has one `directLake` entity partition on `gold.<table>` through a
-  declared expression (`test_model_parses_into_direct_lake_tables`).
-- Every model column is a column of that Gold table, with a compatible type
-  (`test_model_columns_exist_in_gold`).
-- No PHI: no column sourced from `dim_patient`'s PHI columns (its columns minus the key, sex,
-  home clinic and record count) and no column name matching name/birth/phone/address/postal/SSN
-  patterns outside an allowlist (`test_model_has_no_phi_columns`).
-- Every metric in the `GLOSSARY.md` table has a measure of the same name
-  (`test_every_glossary_metric_has_a_measure`).
-- Every `table[column]` reference in measures and role filters resolves
-  (`test_dax_references_resolve`); relationships join existing columns
-  (`test_relationships_join_model_columns`).
-- Role `clinic` filters `dim_clinic` through `user_clinic` and `USERPRINCIPALNAME()`
-  (`test_clinic_role_filters_by_user`).
-- The report binds by path to the model, has the three contour pages, and every field it shows
-  exists in the model (`test_report_fields_exist_in_the_model`).
-- Every `fabric/*/.platform` has a distinct uuid4 `logicalId` (`test_platform_logical_ids`).
+- Same answer, maintained incrementally. But the view would need one row per bed from a `union`
+  of three projections, which a materialized view source cannot be (single table, single
+  `summarize`); a second update policy into a `bed_change` table would fix that at the cost of
+  another table. Materialized view behaviour on the emulator is unverified, and the size does
+  not need it. Rejected.
 
-Negative control, run 2026-10-28: a `dim_patient` table with `given_name` added to the model made
-`test_model_has_no_phi_columns` fail (`('dim_patient', 'given_name')`) while the other nine tests
-passed; the file was then removed.
+### Approach C — order by arrival (`ingestion_time()`)
 
-Measure values are checked against U09's reference in the cloud run (U20), as the spec says.
+- Simplest, and wrong: a late discharge after a readmission would free an occupied bed. Rejected.
 
-## Known limit handed to U17
+## Negative control
 
-`readmission_30d_rate` counts a readmission at any clinic. Under the `clinic` role, RLS also hides
-the other clinics' stays, so a clinic user sees only same-clinic readmissions. The fix is a
-precomputed `readmitted_30d` flag on `gold.fact_stay`; it needs a stand run of `make gold` and the
-U09 comparison, so it is left to U17 (which owns RLS) rather than changed here without the stand.
+Swap `arg_max` for `arg_min` in `bed_current()`: the `kusto` tests must go red, then restore.
 
-## Reversal
+## Implementation notes
 
-Revert the PR. The Fabric items disappear from Git; `gold.user_clinic` is dropped by hand
-(`DROP TABLE gold.user_clinic`), as no reload drops it.
+- `make kql-test`, 2026-10-29: 5 `kusto` tests pass in 5–10 s; from `docker compose up` to tests
+  done 8 s wall (image already pulled); emulator memory after the run 259 MiB of the 4 GiB cap.
+- Measured on the emulator (no workaround needed): `.create database … volatile`,
+  `.execute database script` on `DatabaseSchema.kql` as committed (comments included), the
+  transactional update policy firing on `.ingest inline … with (format='json',
+  ingestionMappingReference=…)`, and `ingestion_time()` inside the policy query. So the completion
+  test exercises the real raw → typed path, not the functions alone.
+- Emulator limits that stay untested here: no streaming or queued ingestion and no Event Hubs
+  data connection, so Eventstream → `adt_raw` and the latency are cloud checks (U14/U20).
+- Scenario: 9 events over 7 reference beds in 3 wards (one ward without events). In-order, late
+  (3 before 2, 5 before 4, 7 before 6), duplicate (4 copies) and reversed arrival all give the
+  same current state and occupancy ICU 1/2, MED 3/4, SURG 0/1; `adt_event` keeps every send.
+  A fast test runs the same events through `nb_bed_history` and gets the same current state.
+- Negative controls: `arg_min` for `arg_max` turns all four arrival orders red; flipping the
+  occupied bit (`iff(occupied, 0, 1)`) turns them red on BOS-MED-01 (free instead of S3 at the
+  shared instant). Restored; green.
+- Marker `kusto`, not `stand`: `make test-stand` runs after `make up`, and the emulator must not
+  share this host with the source stand, so its tests get their own target and CI job `kql`
+  (optional, like `stand`).
+- `make lint`, `make test` (65 passed) green. In a worktree `make secrets` scans 0 commits; the
+  changed paths passed `gitleaks dir`.
+- Docker Desktop crashed once mid-run (WSL bootstrap error, with the emulator not running) and
+  left this worktree's `ivy-cache` volume with broken Delta jars; the volume was removed and
+  rebuilt.

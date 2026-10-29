@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history quality replay secrets up down tf-check
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history quality replay kql-test secrets up down tf-check
 
 setup:
 	docker compose build dev
@@ -80,6 +80,13 @@ quality:
 # ADT_EVENTHUB_CONNECTION_STRING when set. Pass options with ARGS, e.g. ARGS='--limit 2000'.
 replay:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/replay_adt.py $(ARGS)'
+
+# KQL schema tests on the Kusto emulator, started alone and removed afterwards (4 GB cap).
+# Run it without `make up`: the emulator does not share the host with the source stand.
+kql-test:
+	docker compose up -d kusto
+	$(RUN) sh -c 'uv sync --frozen --quiet && uv run pytest -m kusto'; status=$$?; \
+		docker compose rm -sf kusto; exit $$status
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .

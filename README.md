@@ -227,3 +227,17 @@ is a PBIR report bound to it by path, with one page per contour: occupancy, qual
 that every model column exists in Gold with a compatible type, that no PHI column is present, that
 every metric has a measure and a visual, and that the RLS role exists. Measure values are compared
 with the U09 reference in the cloud run.
+
+## Eventhouse model
+
+`fabric/kqldb_beds.KQLDatabase/` is the KQL database under the `eh_beds` eventhouse, in Fabric's
+Git format. Eventstream ingests each event body as JSON into `adt_raw` (mapping `adt_raw_json`);
+an update policy types it into `adt_event`, with `ingested_at` for latency. `bed_current()` takes
+the latest change per bed by event time (`arg_max`), so late and duplicate events do not change the
+answer, and it agrees with `nb_bed_history`. `ward_occupancy()` divides occupied beds by the beds
+per ward in `bed`, the SharePoint bed list loaded from Silver; the live map and the Activator rule
+read it.
+
+`make kql-test` runs the schema on the Kusto emulator: four arrival orders of one scripted event
+set (in order, late, duplicate, reversed) must give the same current state and occupancy. The
+emulator needs up to 4 GB, so it runs alone, never next to `make up`.
