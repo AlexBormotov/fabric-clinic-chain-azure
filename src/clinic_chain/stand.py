@@ -4,6 +4,8 @@ The SharePoint stand-in is the folder `data/sources/sharepoint/` itself; nothing
 """
 
 import os
+import time
+import urllib.request
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -23,10 +25,16 @@ AZURITE = (
 )
 
 
-def sql(database: str = DATABASE) -> mssql_python.Connection:
-    password = os.environ["MSSQL_SA_PASSWORD"]
+EVENTHUBS_HEALTH = "http://eventhubs:5300/health"
+
+
+def sql(
+    database: str = DATABASE, user: str = "sa", password: str | None = None
+) -> mssql_python.Connection:
+    """Connect as `sa` by default; tests pass a login of their own."""
+    password = password or os.environ["MSSQL_SA_PASSWORD"]
     return mssql_python.connect(
-        f"Server=sqlserver,1433;Database={database};UID=sa;PWD={password};"
+        f"Server=sqlserver,1433;Database={database};UID={user};PWD={password};"
         "Encrypt=yes;TrustServerCertificate=yes",
         autocommit=True,
     )
@@ -91,3 +99,18 @@ def upload(files: dict[str, dict[str, Path]]) -> None:
         for blob, path in wanted.items():
             with path.open("rb") as f:
                 container.upload_blob(blob, f, overwrite=True)
+
+
+def wait_eventhubs(timeout_s: float = 180) -> None:
+    """Block until the Event Hubs emulator is healthy; its image has no shell for a healthcheck."""
+    deadline = time.monotonic() + timeout_s
+    while True:
+        try:
+            with urllib.request.urlopen(EVENTHUBS_HEALTH, timeout=5) as response:
+                if response.status == 200:
+                    return
+        except OSError:
+            pass
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"{EVENTHUBS_HEALTH} not healthy after {timeout_s} s")
+        time.sleep(2)

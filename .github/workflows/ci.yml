@@ -43,7 +43,16 @@ jobs:
       - run: make mpi
       - run: make gold
       - run: make bed-history
+      - run: make quality
       - run: make test-stand
+
+  # Kusto emulator (4.5 GB image, 4 GB cap) in its own job, apart from the source stand.
+  kql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make setup
+      - run: make kql-test
 
   secrets:
     runs-on: ubuntu-latest

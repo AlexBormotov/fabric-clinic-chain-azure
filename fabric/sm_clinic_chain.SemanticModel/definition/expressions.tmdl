@@ -1,0 +1,10 @@
+/// OneLake location of the Gold Warehouse: workspace ID / item ID. The zero GUIDs are
+/// replaced per environment at deployment (U19).
+expression DatabaseQuery =
+		let
+		    Source = AzureStorage.DataLake(
+		        "https://onelake.dfs.fabric.microsoft.com/00000000-0000-0000-0000-000000000000/00000000-0000-0000-0000-000000000000",
+		        [HierarchicalNavigation = true]
+		    )
+		in
+		    Source

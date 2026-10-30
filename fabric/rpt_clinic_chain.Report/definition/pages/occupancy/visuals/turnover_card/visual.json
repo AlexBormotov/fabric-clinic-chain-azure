@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "turnover_card",
+  "position": {
+    "x": 620,
+    "y": 20,
+    "z": 0,
+    "width": 280,
+    "height": 140
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_stay"
+                    }
+                  },
+                  "Property": "bed_turnover_per_year"
+                }
+              },
+              "queryRef": "fact_stay.bed_turnover_per_year",
+              "nativeQueryRef": "bed_turnover_per_year"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

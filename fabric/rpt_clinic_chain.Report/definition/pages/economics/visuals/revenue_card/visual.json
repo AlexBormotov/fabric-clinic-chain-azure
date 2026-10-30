@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "revenue_card",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 280,
+    "height": 140
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_claim"
+                    }
+                  },
+                  "Property": "revenue_per_bed_per_year"
+                }
+              },
+              "queryRef": "fact_claim.revenue_per_bed_per_year",
+              "nativeQueryRef": "revenue_per_bed_per_year"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

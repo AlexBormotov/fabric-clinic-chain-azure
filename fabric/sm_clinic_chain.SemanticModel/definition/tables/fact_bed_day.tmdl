@@ -1,0 +1,31 @@
+/// Occupied hours per stay segment and calendar day.
+table fact_bed_day
+
+	/// Occupied bed-hours / (beds x 24 x days in the window). GLOSSARY.md.
+	measure occupancy_rate = DIVIDE(SUM(fact_bed_day[occupied_hours]), [beds] * 24 * [window_days])
+		formatString: 0.0%
+
+	column date_key
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: date_key
+
+	column clinic_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: clinic_id
+
+	column occupied_hours
+		dataType: double
+		isHidden
+		summarizeBy: none
+		sourceColumn: occupied_hours
+
+	partition fact_bed_day = entity
+		mode: directLake
+		source
+			entityName: fact_bed_day
+			schemaName: gold
+			expressionSource: DatabaseQuery

@@ -1,0 +1,39 @@
+relationship 743448d4-3735-41cc-8fd1-03af812dd538
+	fromColumn: dim_bed.clinic_id
+	toColumn: dim_clinic.clinic_id
+
+relationship f56c161b-3b5f-49dc-97a2-d925c1626975
+	fromColumn: fact_bed_day.clinic_id
+	toColumn: dim_clinic.clinic_id
+
+relationship 0758bec8-97d3-42c1-a0cb-467523523062
+	fromColumn: fact_bed_day.date_key
+	toColumn: dim_date.date_key
+
+relationship 4a432468-a70f-4845-a5eb-0a6778ad362d
+	fromColumn: fact_stay.clinic_id
+	toColumn: dim_clinic.clinic_id
+
+relationship e9f306b2-8edf-4456-a51d-3ea93d47b263
+	fromColumn: fact_stay.admit_date_key
+	toColumn: dim_date.date_key
+
+relationship 7b2f46c5-951e-42b6-9959-7bc5c71cab47
+	fromColumn: fact_ed_visit.clinic_id
+	toColumn: dim_clinic.clinic_id
+
+relationship 43022e70-ed20-4e3c-9bb1-cf860ce4c80c
+	fromColumn: fact_ed_visit.arrival_date_key
+	toColumn: dim_date.date_key
+
+relationship 15da241e-ae68-4e27-a6b0-1ad8a2b9051e
+	fromColumn: fact_claim.clinic_id
+	toColumn: dim_clinic.clinic_id
+
+relationship 5d6dceff-d774-4058-8ff5-f5e5b2f7fe0d
+	fromColumn: fact_claim.service_date_key
+	toColumn: dim_date.date_key
+
+relationship 00c35db3-1594-4d2a-ae90-29d04154fd22
+	fromColumn: fact_claim.payer
+	toColumn: dim_payer.payer
