@@ -19,7 +19,7 @@ find_replace:
   - find_value: '#\s*META\s+"default_lakehouse":\s*"(0{8}-0{4}-0{4}-0{4}-0{12})"'
     is_regex: "true"
     item_type: Notebook
-    item_name: [nb_silver, nb_mpi, nb_bed_history]
+    item_name: [nb_silver, nb_mpi, nb_bed_history, nb_quality]
     replace_value:
       Test: $items.Lakehouse.lh_silver.$id
       Prod: $items.Lakehouse.lh_silver.$id
@@ -145,3 +145,9 @@ key_value_replace:
     replace_value:
       Test: $items.Notebook.nb_bed_history.$id
       Prod: $items.Notebook.nb_bed_history.$id
+  - find_key: $.properties.activities[?(@.name == "run_nb_quality")].typeProperties.notebookId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Notebook.nb_quality.$id
+      Prod: $items.Notebook.nb_quality.$id
