@@ -5,8 +5,10 @@ description = "Clinic chain analytics and real-time bed monitoring on Microsoft 
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "azure-eventhub==5.15.1",
+    "azure-kusto-data==6.0.4",
     "azure-storage-blob==12.31.0",
     "delta-spark==4.2.0",
+    "fabric-cicd==1.4.0",
     "mssql-python==1.16.0",
     "openpyxl==3.1.5",
     "pandas==3.0.6",
@@ -30,10 +32,11 @@ package = false
 [tool.pytest.ini_options]
 pythonpath = ["src", "scripts"]
 testpaths = ["tests"]
-addopts = "-m 'not slow and not stand'"
+addopts = "-m 'not slow and not stand and not kusto'"
 markers = [
     "slow: runs Synthea; minutes long (make test-slow)",
     "stand: reads the local source stand; needs `make up` (make test-stand)",
+    "kusto: runs KQL on the Kusto emulator (make kql-test)",
 ]
 
 [tool.ruff]

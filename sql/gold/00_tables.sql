@@ -39,16 +39,17 @@ CREATE TABLE gold.dim_bed (
     clinic_id varchar(50) NOT NULL
 );
 
--- PHI: names, birth date, phone and postal code (masked in U16).
+-- PHI: names, birth date, phone and postal code, the only identifying columns in Gold. Each is
+-- denied to gold_reader (30_security.sql) and masked for any other reader without UNMASK.
 DROP TABLE IF EXISTS gold.dim_patient;
 CREATE TABLE gold.dim_patient (
     master_patient_id varchar(32) NOT NULL,
-    given_name varchar(200) NULL,
-    family_name varchar(200) NULL,
-    birth_date date NULL,
+    given_name varchar(200) MASKED WITH (FUNCTION = 'partial(1,"xxxx",0)') NULL,
+    family_name varchar(200) MASKED WITH (FUNCTION = 'partial(1,"xxxx",0)') NULL,
+    birth_date date MASKED WITH (FUNCTION = 'default()') NULL,
     sex char(1) NULL,
-    phone varchar(20) NULL,
-    postal_code varchar(20) NULL,
+    phone varchar(20) MASKED WITH (FUNCTION = 'default()') NULL,
+    postal_code varchar(20) MASKED WITH (FUNCTION = 'partial(3,"xx",0)') NULL,
     home_clinic_id varchar(50) NULL,
     source_records int NOT NULL
 );

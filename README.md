@@ -32,6 +32,9 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make quality` | Soda data contracts on Silver; fails when a check fails |
 
 | `make replay` | replay ADT events into the Event Hubs emulator at 50 events/s (`ARGS='--limit 2000'`) |
+
+| `make deploy ENVIRONMENT=Test` | deploy `fabric/` to a Fabric workspace (CI, see Deployment) |
+| `make republish ENVIRONMENT=Test` | republish deployed Dataflows Gen2 as the owner |
 | `make secrets` | gitleaks over the git history |
 
 CI runs the same targets.
@@ -157,6 +160,19 @@ Tests check:
   ADT events in Spark;
 - that keys are unique and every fact key resolves to a dimension.
 
+PHI lives only in `gold.dim_patient`: names, birth date, phone and postal code.
+- Role `gold_reader` is denied every PHI column (column-level security). The denial also covers
+  predicates on those columns.
+- Each PHI column is also masked (dynamic data masking). Masks cover readers outside both roles,
+  such as a Fabric Viewer. A Viewer can still infer values through predicates, so non-PHI readers
+  get `gold_reader`, not Viewer.
+- Role `gold_phi_reader` has `UNMASK` and sees clear values
+  ([`sql/gold/30_security.sql`](sql/gold/30_security.sql)).
+
+In Fabric, Entra groups join the roles
+([`sql/fabric/security_members.sql`](sql/fabric/security_members.sql)). Locally, the `stand` tests
+create three SQL logins and query as each: one per role, and one with only `db_datareader`.
+
 ### Metrics
 
 The eight metrics are defined in [`GLOSSARY.md`](GLOSSARY.md) and exposed as Gold views
@@ -231,6 +247,66 @@ is a PBIR report bound to it by path, with one page per contour: occupancy, qual
 that every model column exists in Gold with a compatible type, that no PHI column is present, that
 every metric has a measure and a visual, and that the RLS role exists. Measure values are compared
 with the U09 reference in the cloud run.
+
+## Eventhouse model
+
+`fabric/kqldb_beds.KQLDatabase/` is the KQL database under the `eh_beds` eventhouse, in Fabric's
+Git format. Eventstream ingests each event body as JSON into `adt_raw` (mapping `adt_raw_json`);
+an update policy types it into `adt_event`, with `ingested_at` for latency. `bed_current()` takes
+the latest change per bed by event time (`arg_max`), so late and duplicate events do not change the
+answer, and it agrees with `nb_bed_history`. `ward_occupancy()` divides occupied beds by the beds
+per ward in `bed`, the SharePoint bed list loaded from Silver; the live map and the Activator rule
+read it.
+
+`make kql-test` runs the schema on the Kusto emulator: four arrival orders of one scripted event
+set (in order, late, duplicate, reversed) must give the same current state and occupancy. The
+emulator needs up to 4 GB, so it runs alone, never next to `make up`.
+
+## Deployment
+
+`.github/workflows/deploy.yml` deploys `fabric/` with
+[`fabric-cicd`](https://github.com/microsoft/fabric-cicd) 1.4.0 on manual dispatch only: Test, then
+Prod if `target` is `Prod`. It never runs on push.
+Environment values live in [`fabric/parameter.yml`](fabric/parameter.yml), which commits no ID:
+
+- workspace and item IDs are looked up by name in the target workspace;
+- connection IDs and the SharePoint site come from GitHub environment variables.
+
+Why fabric-cicd and not the deployment pipeline:
+[ADR 0004](docs/adr/0004-fabric-cicd-vs-deployment-pipelines.md).
+
+The workflow signs in as the deployer service principal through GitHub OIDC. No client secret
+exists anywhere. One-time owner setup, after `terraform apply` (U18):
+
+1. Create an Entra app registration, the deployer. Pass its service principal object ID to
+   Terraform as `deployer_principal_id`, which makes it Contributor on Test and Prod.
+2. On the app, add two federated credentials: issuer `https://token.actions.githubusercontent.com`,
+   audience `api://AzureADTokenExchange`, subjects
+   `repo:AlexBormotov/fabric-clinic-chain-azure:environment:Test` and `…:environment:Prod`.
+3. In the Fabric admin portal, allow service principals to use Fabric APIs, for a security group
+   that holds the deployer.
+4. In Fabric, create the Azure SQL and Blob Storage connections the pipeline uses. Share them with
+   the deployer.
+5. In GitHub, create the environments `Test` and `Prod`:
+   - limit both to the `main` branch;
+   - add yourself as a required reviewer on `Prod`;
+   - set these variables in each (variables, not secrets: none of them is a credential):
+
+| Variable | Value |
+|---|---|
+| `AZURE_TENANT_ID` | Entra tenant ID |
+| `AZURE_CLIENT_ID` | deployer app (client) ID |
+| `FABRIC_WORKSPACE_ID` | `terraform output workspace_ids`, `test` or `prod` |
+| `FABRIC_SQL_CONNECTION_ID` | Fabric connection to the billing database |
+| `FABRIC_BLOB_CONNECTION_ID` | Fabric connection to the Blob storage account |
+| `SHAREPOINT_SITE_URL` | SharePoint site with `beds.xlsx` and `rosters.xlsx` |
+
+After a deploy that changed `df_sharepoint`, the dataflow needs an "apply changes" job. Fabric
+does not accept a service principal for that job. Run it yourself:
+
+1. Set `FABRIC_WORKSPACE_ID` in your shell, or in the git-ignored compose environment file.
+2. Run `make republish ENVIRONMENT=Test`.
+3. Sign in with the device code it prints.
 
 ## PHI security
 

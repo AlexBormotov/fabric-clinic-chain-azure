@@ -28,10 +28,13 @@ AZURITE = (
 EVENTHUBS_HEALTH = "http://eventhubs:5300/health"
 
 
-def sql(database: str = DATABASE) -> mssql_python.Connection:
-    password = os.environ["MSSQL_SA_PASSWORD"]
+def sql(
+    database: str = DATABASE, user: str = "sa", password: str | None = None
+) -> mssql_python.Connection:
+    """Connect as `sa` by default; tests pass a login of their own."""
+    password = password or os.environ["MSSQL_SA_PASSWORD"]
     return mssql_python.connect(
-        f"Server=sqlserver,1433;Database={database};UID=sa;PWD={password};"
+        f"Server=sqlserver,1433;Database={database};UID={user};PWD={password};"
         "Encrypt=yes;TrustServerCertificate=yes",
         autocommit=True,
     )

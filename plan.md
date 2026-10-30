@@ -3,7 +3,7 @@ id: PLAN-U17
 spec: SPEC-001 / U17
 owner: AlexBormotov
 status: approach A taken 2026-10-29 under the owner's standing go-ahead
-previous: PLAN-U10 (#17), PLAN-U18 (#13), PLAN-U11 (#14), PLAN-U15 (#12), PLAN-U09 (#16); see git history of this file
+previous: PLAN-U19 (#19), PLAN-U16 (#18), PLAN-U12 (#20), PLAN-U10 (#17); see git history of this file
 ---
 
 # PLAN-U17 — OneLake security and model RLS
