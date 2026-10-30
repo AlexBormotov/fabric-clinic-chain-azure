@@ -129,6 +129,16 @@ def test_clinic_role_filters_by_user(model):
     assert facts <= filtered
 
 
+def test_readmission_uses_the_precomputed_flag(model):
+    """RLS filters fact_stay to the user's clinics, so a lookup of the patient's other stays would
+    miss readmissions at other clinics; the measure must average Gold's `readmitted_30d` instead."""
+    dax = model.tables["fact_stay"].measures["readmission_30d_rate"]
+    assert "fact_stay[readmitted_30d]" in dax
+    for lookup in ("REMOVEFILTERS", "ALLEXCEPT", "ALL(fact_stay", "CALCULATE", "master_patient_id"):
+        assert lookup not in dax, lookup
+    assert "fact_stay[admitted_at]" not in dax
+
+
 def test_report_fields_exist_in_the_model(model):
     pbir = json.loads((REPORT / "definition.pbir").read_text())
     assert (REPORT / pbir["datasetReference"]["byPath"]["path"]).resolve() == MODEL.resolve()

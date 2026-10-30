@@ -35,6 +35,16 @@ variable "git_directory" {
   default     = "/fabric"
 }
 
+variable "tenant_id" {
+  description = "Entra tenant ID of the OneLake security role members."
+  type        = string
+}
+
+variable "phi_reader_group_id" {
+  description = "Entra group object ID made a member of PhiReader on lh_silver; null skips the role."
+  type        = string
+}
+
 variable "deployer_principal_id" {
   description = "Service principal object ID given Contributor on Test and Prod; null skips it."
   type        = string

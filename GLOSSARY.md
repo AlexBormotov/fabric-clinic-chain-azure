@@ -23,6 +23,10 @@ owner reviews them before the cloud run.
   day (`gold.fact_bed_day`).
 - **Scope**: a clinic, or `ALL` for the whole chain. Metrics are reported per scope over the whole
   window.
+- **PHI table**: a Silver table holding names, birth dates, phone numbers or postal codes
+  (`patient_record`, and `staff` for staff names). Only the OneLake role `PhiReader` reads it
+  (`infra/modules/fabric/lh_silver_roles.json`, ADR 0005).
+- **Clinic user**: a report user scoped to the clinics listed for their UPN in `gold.user_clinic`.
 
 ## Metrics
 

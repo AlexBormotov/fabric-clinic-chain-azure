@@ -1,0 +1,29 @@
+{
+  "tables": {
+    "phi": [
+      "patient_record",
+      "staff"
+    ],
+    "non_phi": [
+      "adt_event",
+      "bed",
+      "bed_event",
+      "bed_state_history",
+      "claim",
+      "claim_line",
+      "condition",
+      "ed_visit",
+      "encounter",
+      "lab_result",
+      "medication_request",
+      "patient_match_review",
+      "patient_xref",
+      "reconciliation",
+      "roster"
+    ]
+  },
+  "roles": {
+    "DefaultReader": ["non_phi"],
+    "PhiReader": ["non_phi", "phi"]
+  }
+}

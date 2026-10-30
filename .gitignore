@@ -21,3 +21,5 @@ crash.log
 TASK.md
 # Agent worktrees (Claude Code)
 .claude/worktrees/
+# Per-environment RLS membership with real UPNs (template: sql/fabric/user_clinic.example.sql)
+sql/fabric/user_clinic.sql
