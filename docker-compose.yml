@@ -17,6 +17,7 @@ services:
       FABRIC_SQL_CONNECTION_ID: ${FABRIC_SQL_CONNECTION_ID-}
       FABRIC_BLOB_CONNECTION_ID: ${FABRIC_BLOB_CONNECTION_ID-}
       SHAREPOINT_SITE_URL: ${SHAREPOINT_SITE_URL-}
+      ALERT_TEAMS_RECIPIENT: ${ALERT_TEAMS_RECIPIENT-}
     volumes:
       - .:/workspace
       - uv-cache:/root/.cache/uv

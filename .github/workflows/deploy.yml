@@ -34,6 +34,7 @@ jobs:
       FABRIC_SQL_CONNECTION_ID: ${{ vars.FABRIC_SQL_CONNECTION_ID }}
       FABRIC_BLOB_CONNECTION_ID: ${{ vars.FABRIC_BLOB_CONNECTION_ID }}
       SHAREPOINT_SITE_URL: ${{ vars.SHAREPOINT_SITE_URL }}
+      ALERT_TEAMS_RECIPIENT: ${{ vars.ALERT_TEAMS_RECIPIENT }}
     steps:
       - uses: actions/checkout@v4
       - run: make setup
@@ -55,6 +56,7 @@ jobs:
       FABRIC_SQL_CONNECTION_ID: ${{ vars.FABRIC_SQL_CONNECTION_ID }}
       FABRIC_BLOB_CONNECTION_ID: ${{ vars.FABRIC_BLOB_CONNECTION_ID }}
       SHAREPOINT_SITE_URL: ${{ vars.SHAREPOINT_SITE_URL }}
+      ALERT_TEAMS_RECIPIENT: ${{ vars.ALERT_TEAMS_RECIPIENT }}
     steps:
       - uses: actions/checkout@v4
       - run: make setup

@@ -24,7 +24,12 @@ FABRIC = Path(__file__).resolve().parents[1] / "fabric"
 PARAMETERS = yaml.safe_load((FABRIC / "parameter.yml").read_text(encoding="utf-8"))
 
 # Values that must never reach a workspace.
-PLACEHOLDERS = ("00000000-0000-0000-0000-000000000000", "example.sharepoint.com")
+PLACEHOLDERS = (
+    "00000000-0000-0000-0000-000000000000",
+    "example.sharepoint.com",
+    "example.kusto.fabric.microsoft.com",
+    "alerts@example.com",
+)
 
 # Items infra/modules/fabric creates in every workspace (U18), outside fabric/. The eventhouse
 # comes with a default KQL database of the same name.
@@ -74,8 +79,12 @@ def resolve_value(value: str, environment: str) -> str:
         item_type, name, attribute = value.removeprefix("$items.").split(".")
         known = set(ITEMS.values()) | TERRAFORM_ITEMS
         assert (item_type, name) in known, f"{value}: no such item in fabric/ or Terraform"
+        fake = uuid.uuid5(uuid.NAMESPACE_URL, f"{environment}/{item_type}/{name}")
+        if attribute == "$queryserviceuri":  # fabric-cicd 1.4.0 has it for eventhouses only
+            assert item_type == "Eventhouse", value
+            return f"https://trd-{fake.hex[:12]}.z0.kusto.fabric.microsoft.com"
         assert attribute == "$id", value
-        return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{environment}/{item_type}/{name}"))
+        return str(fake)
     if value.startswith("$ENV:"):
         variable = value.removeprefix("$ENV:")
         assert variable in PARAMETER_VARIABLES, f"{value}: not in PARAMETER_VARIABLES"

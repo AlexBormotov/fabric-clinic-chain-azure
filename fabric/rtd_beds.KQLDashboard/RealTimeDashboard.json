@@ -1,0 +1,118 @@
+{
+  "$schema": "https://dataexplorer.azure.com/static/d/schema/89/dashboard.json",
+  "schema_version": 89,
+  "title": "rtd_beds",
+  "autoRefresh": {
+    "enabled": true,
+    "defaultInterval": "10s",
+    "minInterval": "10s"
+  },
+  "changeDetection": {
+    "kind": "liveUpdates",
+    "minRefreshRate": "10s",
+    "minRefreshRate_V2": "5s",
+    "fallbackRefreshRate": "30s"
+  },
+  "baseQueries": [],
+  "dataSources": [
+    {
+      "id": "a9e87016-45be-4c82-8b04-d13924ab74a9",
+      "kind": "kusto-trident",
+      "name": "kqldb_beds",
+      "clusterUri": "",
+      "databaseArtifactId": "00000000-0000-0000-0000-000000000000",
+      "database": "00000000-0000-0000-0000-000000000000",
+      "workspace": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "pages": [
+    {
+      "id": "e9356055-6c14-4b34-a4f5-318f37f5ac12",
+      "name": "Live bed map"
+    }
+  ],
+  "tiles": [
+    {
+      "id": "29a289c7-9614-42e4-81f5-ea94c21ff7a4",
+      "title": "Ward occupancy",
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 8
+      },
+      "pageId": "e9356055-6c14-4b34-a4f5-318f37f5ac12",
+      "visualType": "table",
+      "queryRef": {
+        "kind": "query",
+        "queryId": "b9a53cfd-9628-4d5d-83fc-a4b9d57db978"
+      },
+      "visualOptions": {}
+    },
+    {
+      "id": "6792889c-6e99-44c3-8188-b14423c08932",
+      "title": "Bed state",
+      "layout": {
+        "x": 12,
+        "y": 0,
+        "width": 12,
+        "height": 16
+      },
+      "pageId": "e9356055-6c14-4b34-a4f5-318f37f5ac12",
+      "visualType": "table",
+      "queryRef": {
+        "kind": "query",
+        "queryId": "22c85044-b86a-4ab4-9ea3-7eee63c53408"
+      },
+      "visualOptions": {}
+    },
+    {
+      "id": "20beb599-8d6c-45ae-8cca-6fbd7b78ab78",
+      "title": "Newest event",
+      "layout": {
+        "x": 0,
+        "y": 8,
+        "width": 12,
+        "height": 4
+      },
+      "pageId": "e9356055-6c14-4b34-a4f5-318f37f5ac12",
+      "visualType": "table",
+      "queryRef": {
+        "kind": "query",
+        "queryId": "74947bf9-3e02-419b-9fb6-0c02205c8180"
+      },
+      "visualOptions": {}
+    }
+  ],
+  "parameters": [],
+  "queries": [
+    {
+      "id": "b9a53cfd-9628-4d5d-83fc-a4b9d57db978",
+      "dataSource": {
+        "kind": "inline",
+        "dataSourceId": "a9e87016-45be-4c82-8b04-d13924ab74a9"
+      },
+      "text": "ward_occupancy()\n| project clinic_name, ward_name, occupied_beds, beds, occupancy\n| order by occupancy desc, clinic_name asc, ward_name asc",
+      "usedVariables": []
+    },
+    {
+      "id": "22c85044-b86a-4ab4-9ea3-7eee63c53408",
+      "dataSource": {
+        "kind": "inline",
+        "dataSourceId": "a9e87016-45be-4c82-8b04-d13924ab74a9"
+      },
+      "text": "bed\n| join kind=leftouter (bed_current()) on bed_id\n| project clinic_name, ward_name, bed_id, state = iff(occupied == true, \"occupied\", \"free\"), stay_id, since\n| order by clinic_name asc, ward_name asc, bed_id asc",
+      "usedVariables": []
+    },
+    {
+      "id": "74947bf9-3e02-419b-9fb6-0c02205c8180",
+      "dataSource": {
+        "kind": "inline",
+        "dataSourceId": "a9e87016-45be-4c82-8b04-d13924ab74a9"
+      },
+      "text": "adt_event\n| top 1 by ingested_at desc\n| project event_id, event_type, event_time, ingested_at, lag_s = datetime_diff('second', now(), ingested_at)",
+      "usedVariables": []
+    }
+  ],
+  "embeddedApps": []
+}

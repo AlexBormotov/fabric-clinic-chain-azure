@@ -25,7 +25,17 @@ ENVIRONMENTS = ("Test", "Prod")
 # their types out of scope keeps unpublish_all_orphan_items from deleting them. KQL databases are in
 # scope (U12 kqldb_beds); fabric-cicd unpublishes them only with a feature flag never set here, and
 # TERRAFORM_ITEMS also guards the eventhouse's default database, named eh_beds like its parent.
-ITEM_TYPES = ("Notebook", "DataPipeline", "Dataflow", "SemanticModel", "Report", "KQLDatabase")
+# fabric-cicd publishes dashboards and Activators after KQL databases (U14).
+ITEM_TYPES = (
+    "Notebook",
+    "DataPipeline",
+    "Dataflow",
+    "SemanticModel",
+    "Report",
+    "KQLDatabase",
+    "KQLDashboard",
+    "Reflex",
+)
 TERRAFORM_ITEMS = r"^(lh_bronze|lh_silver|wh_gold|eh_beds)$"
 
 # Values parameter.yml takes from the environment ($ENV:<name>), set per GitHub environment.
@@ -33,6 +43,7 @@ PARAMETER_VARIABLES = (
     "FABRIC_SQL_CONNECTION_ID",
     "FABRIC_BLOB_CONNECTION_ID",
     "SHAREPOINT_SITE_URL",
+    "ALERT_TEAMS_RECIPIENT",
 )
 
 FABRIC_API = "https://api.fabric.microsoft.com/v1"
