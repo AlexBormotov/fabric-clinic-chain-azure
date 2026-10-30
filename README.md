@@ -157,6 +157,19 @@ Tests check:
   ADT events in Spark;
 - that keys are unique and every fact key resolves to a dimension.
 
+PHI lives only in `gold.dim_patient`: names, birth date, phone and postal code.
+- Role `gold_reader` is denied every PHI column (column-level security). The denial also covers
+  predicates on those columns.
+- Each PHI column is also masked (dynamic data masking). Masks cover readers outside both roles,
+  such as a Fabric Viewer. A Viewer can still infer values through predicates, so non-PHI readers
+  get `gold_reader`, not Viewer.
+- Role `gold_phi_reader` has `UNMASK` and sees clear values
+  ([`sql/gold/30_security.sql`](sql/gold/30_security.sql)).
+
+In Fabric, Entra groups join the roles
+([`sql/fabric/security_members.sql`](sql/fabric/security_members.sql)). Locally, the `stand` tests
+create three SQL logins and query as each: one per role, and one with only `db_datareader`.
+
 ### Metrics
 
 The eight metrics are defined in [`GLOSSARY.md`](GLOSSARY.md) and exposed as Gold views
