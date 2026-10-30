@@ -1,129 +1,121 @@
 ---
-id: PLAN-U16
-spec: SPEC-001 / U16
+id: PLAN-U19
+spec: SPEC-001 / U19
 owner: AlexBormotov
 status: approach A taken 2026-10-28 under the owner's standing go-ahead
-previous: PLAN-U12 (#20), PLAN-U10 (#17), PLAN-U18 (#13), PLAN-U09 (#16); see git history of this file
+previous: PLAN-U16 (#18), PLAN-U12 (#20), PLAN-U10 (#17), PLAN-U18 (#13); see git history of this file
 ---
 
-# PLAN-U16 — Warehouse PHI protection
+# PLAN-U19 — Deployment automation
 
-## Facts this plan rests on
+## Facts this plan rests on (read 2026-10-28)
 
-Read on Microsoft Learn on 2026-10-28:
+- `fabric-cicd` 1.4.0 on PyPI, released 2026-10-07 (previous 1.3.0, 2026-08-10). Python <3.15.
+  Read from its wheel source:
+  - `FabricWorkspace(workspace_id=…, repository_directory=…, item_type_in_scope=…, environment=…,
+    token_credential=…)`; `token_credential` is required and is any `TokenCredential`.
+  - `publish_all_items`, `unpublish_all_orphan_items`. Unpublish only touches types in
+    `item_type_in_scope`.
+  - `parameter.yml` sits at the root of `repository_directory`. It has `find_replace` (`is_regex`
+    replaces capture group 1 only), `key_value_replace` (JSONPath, `jsonpath_ng.ext`, every match)
+    and the filters `item_type`, `item_name`, `file_path`. Environment keys are free-form;
+    `_ALL_` is supported.
+  - `$workspace.$id` is the target workspace. `$items.<type>.<name>.$id` is looked up in the
+    target workspace's item list, so Terraform-created lakehouses resolve too. The docs say
+    "repository items"; the code (`_refresh_deployed_items`) lists all items.
+  - `$ENV:<name>` needs the feature flag `enable_environment_variable_replacement`. Validation
+    fails on an unset variable.
+  - Order: key_value_replace, then find_replace, then a built-in swap of zero-GUID `workspaceId`
+    values. Publish order: Notebook, SemanticModel, Report, Dataflow, DataPipeline.
+- GitHub OIDC (Azure/login README, read 2026-10-28): `azure/login` v3.1.0 (2026-09-10). Subject
+  `repo:<owner>/<repo>:environment:<name>` with `id-token: write`. fabric-cicd's authentication
+  page lists `AzureCliCredential` after `azure/login`. It does not mention OIDC or
+  `DefaultAzureCredential`, which is no longer a fallback.
+- Dataflow Gen2 (Microsoft Learn, REST reference updated 2026-09-15):
+  - `updateDefinition` accepts service principals.
+  - Republish is `POST /v1/workspaces/{ws}/dataflows/{id}/jobs/applyChanges/instances`. It is in
+    preview, does not accept service principals, and returns 202 with `Location`.
+  - The "Public APIs" page (updated 2026-09-11) says service principals are not supported at all.
+    The two pages conflict.
+- U18 (`origin/u18-terraform`):
+  - Workspaces `clinic-chain-{dev,test,prod}`, each with `lh_bronze`, `lh_silver`, `wh_gold` and
+    `eh_beds`.
+  - `deployer_principal_id` gets Contributor on Test and Prod.
+  - Outputs: `workspace_ids`, `item_ids`.
+  - No Fabric connections; the owner creates them.
+- Placeholders in `fabric/`: 38 lines with the zero GUID or `example.sharepoint.com`. All are
+  identical zero GUIDs, so rules must be anchored on context, not on value. U10 (`origin/
+  u10-semantic-model`) adds `expressions.tmdl` with a OneLake URL `<workspace>/<warehouse>`.
 
-- "Dynamic data masking in Fabric Data Warehouse" (ms.date 2026-06-25):
-  - Four mask functions: `default()`, `email()`, `random(a, b)` and `partial(prefix,"pad",suffix)`.
-  - `default()` gives `XXXX` for strings and `1900-01-01` for dates.
-  - Viewing unmasked data needs "`UNMASK` on the column or `CONTROL` on the database".
-  - Workspace Admin, Member and Contributor hold `CONTROL` and see clear values.
-- "How to implement dynamic data masking" (ms.date 2024-10-09):
-  - `MASKED WITH (FUNCTION = ...)` works inline in `CREATE TABLE`.
-  - `ALTER COLUMN ... ADD MASKED` adds a mask to an existing column.
-  - The page shows `GRANT UNMASK ON dbo.EmployeeData TO [user]` (table level) and grants to a role.
-- "Column-level security in Fabric Data Warehouse" (ms.date 2024-08-21):
-  - CLS is done with `GRANT` on a column list, and roles are preferred.
-  - Only Entra authentication is supported.
-  - Direct Lake on a Warehouse falls back to DirectQuery under CLS.
-- "SQL granular permissions" (ms.date 2026-06-25):
-  - `GRANT`, `REVOKE` and `DENY` work, as do custom and built-in database roles.
-  - `CREATE USER` cannot be run explicitly: "When you run `GRANT` or `DENY`, Fabric creates the
-    database user automatically."
-- "T-SQL surface area" (ms.date 2026-09-16):
-  - `CREATE USER` is listed as unsupported.
-  - `ALTER TABLE ... ALTER COLUMN` is in preview.
-  - No page documents `CREATE LOGIN`. Fabric has no SQL logins; identities are Entra.
-- "Share your warehouse and manage permissions" (ms.date 2025-07-14):
-  - Item `Read` is CONNECT only.
-  - `ReadData` equals `db_datareader`; the workspace Viewer role has it.
-  - `ReadAll` reads the OneLake files through Spark.
-- SQL Server 2022 supports the same mask functions, column `DENY` and `UNMASK` on a table.
-- Not verified in documentation, left to the cloud run (U20):
-  - `ALTER ROLE ... ADD MEMBER` with an Entra group that has no database user yet;
-  - `GRANT SELECT ON SCHEMA::`.
+## Approaches
 
-## PHI in Gold
+- **A (taken).** Use `fabric-cicd` from a manual GitHub workflow in the dev container.
+  - Identity: `ClientAssertionCredential` fed with a fresh GitHub OIDC token on each Entra
+    exchange. No `azure/login` and no Azure CLI in the image.
+  - `parameter.yml` holds no IDs. It uses `$workspace.$id` and `$items` for workspace, lakehouse,
+    warehouse, notebook and dataflow IDs. It uses `$ENV:` for the two connection IDs and the
+    SharePoint site, set as GitHub environment variables.
+  - Dataflow republish: `make republish`, run by the owner with device code sign-in.
+- B. Same, but `azure/login` with `AzureCliCredential`. Rejected: the runner's az session does not
+  reach the dev container, and az would have to be added to the image. B is the fallback if the
+  assertion callback fails in U20.
+- C. Committed per-environment GUIDs filled from terraform outputs. Rejected: IDs in Git, a manual
+  copy step, and drift when Terraform recreates an item.
+- D. Client secret in GitHub secrets. Rejected: OIDC works, and the owner wants no stored secret.
 
-| Table | Column | PHI | Masked | Denied to `gold_reader` |
-|---|---|---|---|---|
-| `dim_patient` | `given_name`, `family_name` | yes | `partial(1,"xxxx",0)` | yes |
-| `dim_patient` | `birth_date` | yes | `default()` (1900-01-01) | yes |
-| `dim_patient` | `phone` | yes | `default()` | yes |
-| `dim_patient` | `postal_code` | yes | `partial(3,"xx",0)` | yes |
-| `dim_patient` | `master_patient_id`, `sex`, `home_clinic_id`, `source_records` | no | no | no |
+## Files
 
-- `master_patient_id` is a hash of the MPI cluster label, not of demographics.
-- Event dates in facts stay clear. The analysis needs them, and without demographics they do not
-  identify anyone.
-- No other Gold table holds a PHI column (tested).
+- New: `fabric/parameter.yml`, `src/clinic_chain/deploy.py`, `scripts/deploy.py`,
+  `.github/workflows/deploy.yml`, `tests/test_deploy.py`,
+  `docs/adr/0004-fabric-cicd-vs-deployment-pipelines.md`.
+- Changed: `Makefile` (`deploy`, `republish`), `docker-compose.yml` (pass-through variables),
+  `pyproject.toml` and `uv.lock` (`fabric-cicd`), `README.md`, `CLAUDE.md`, `plan.md`.
 
-## Spec change inside this unit (2026-10-28)
+## Invariants and the checks that go red
 
-The first version of this unit denied only `phone` to `gold_reader` and left the other four PHI
-columns masked. Security review on PR #18 found that this leaks PHI. A masked column still answers
-predicates (`WHERE birth_date = ...`, `LIKE 'A%'`), and Microsoft Learn says DDM does not prevent
-inference.
+- Every zero GUID and `example.sharepoint.com` in `fabric/` is replaced for Test and for Prod
+  (`test_every_placeholder_is_resolved`). The resolver re-implements fabric-cicd's rule semantics
+  offline and fails on `$items` names not in `fabric/` or Terraform.
+- No dead rule (`test_every_rule_matches_something`). A rule whose `item_name` targets are all
+  absent from `fabric/` (the U10 model and the U12 `kqldb_beds`, until they merge) is exempt.
+- Every rule has exactly the keys Test and Prod, and fabric-cicd's own validator accepts the file
+  for each.
+- The orphan cleanup cannot delete Terraform's items (`test_orphan_cleanup_cannot_delete_terraform_items`):
+  - Lakehouse, Warehouse and Eventhouse are never in `ITEM_TYPES`;
+  - KQLDatabase is in scope for U12's `kqldb_beds`, but fabric-cicd unpublishes it only with
+    `enable_kqldatabase_unpublish`, which is never set;
+  - `item_name_exclude_regex` also excludes every Terraform name, including the eventhouse's
+    default database `eh_beds`.
+- `kqldb_beds`'s `parentEventhouseItemId` resolves to `$items.Eventhouse.eh_beds.$id`. With
+  `origin/u12-eventhouse` overlaid, the tests pass and that rule matches.
+- fabric-cicd uploads every file in an item folder (`os.walk`). `deploy()` first removes the
+  git-ignored `__pycache__` that notebook-importing tests leave in `fabric/`.
+- `deploy.yml`: `workflow_dispatch` only, no `secrets.`, read-only default permissions, jobs in
+  environments Test and Prod (`test_deploy_workflow_is_manual_and_uses_no_secret`). `make lint`
+  runs `actionlint` on every workflow.
 
-The coordinator changed the unit before merge:
+Negative controls, run 2026-10-28:
 
-- `gold_reader` is denied every PHI column. The column `DENY` is the access control; DDM is defense
-  in depth.
-- The spec's check that "a non-privileged user sees masked values" now runs as a principal outside
-  both roles. Locally that is a login with `db_datareader` only. It models a Fabric Viewer, who
-  reads through `ReadData` (`db_datareader`).
-- **A Viewer still sees masks only and can infer PHI through predicates.** So the Viewer role is not
-  granted on the Gold warehouse to non-PHI users. Those readers get `gold_reader` and item Read.
+- Removing the `run_nb_mpi` notebookId rule fails both environments with
+  `pl_land_sources.DataPipeline/pipeline-content.json:491: "notebookId": "00000000-…"`.
+- Renaming `lh_silver` to `lh_silvr` in one rule fails with `no such item in fabric/ or Terraform`.
+- Restored, all 11 tests pass. With the U10 model and report overlaid from
+  `origin/u10-semantic-model`, they also pass: the model rules match and nothing is left.
 
-## Approach A — inline masks, schema GRANT plus column DENY (taken)
+## Not verified here (U20)
 
-- Masks are declared inline in `CREATE TABLE gold.dim_patient` (`00_tables.sql`). The inline form
-  is GA, while `ALTER COLUMN` is in preview, and the table is recreated on every build anyway.
-- `sql/gold/30_security.sql` sets the roles and grants:
-  - it creates roles `gold_reader` and `gold_phi_reader` if they are missing;
-  - both roles get `GRANT SELECT ON SCHEMA::gold`;
-  - `gold_reader` gets `DENY SELECT` on the five PHI columns of `gold.dim_patient`;
-  - `gold_phi_reader` gets `GRANT UNMASK ON gold.dim_patient`.
-- `sql/fabric/security_members.sql` holds the Fabric-only part. It adds Entra groups to the roles.
-  It is not run locally. Its comments state three rules:
-  - item Read only;
-  - no workspace role;
-  - no `ReadAll`.
-- Files: `sql/gold/00_tables.sql`, `sql/gold/30_security.sql`, `sql/fabric/security_members.sql`,
-  `src/clinic_chain/stand.py` (connect as another login), `tests/test_gold_security.py`,
-  `README.md`, `plan.md`.
-- Invariants:
-  - every PHI column is masked and denied to `gold_reader`;
-  - every `dim_patient` column is classified as PHI or not;
-  - no PHI-named column exists outside `dim_patient` (this covers U09's `fact_stay`);
-  - no Gold view names a PHI column, because ownership chaining would bypass the `DENY`;
-  - `sql/gold/` creates no user, login or role membership.
-- Red checks:
-  - fast: classification, masks, denied set and no-principal tests.
-  - `stand`, as `u16_reader` (role `gold_reader`):
-    - selecting any PHI column fails with "SELECT permission was denied on the column";
-    - so do `SELECT *` and the predicates `WHERE birth_date = ...` and `LIKE 'A%'`;
-    - the non-PHI `dim_patient` columns and the facts are readable, and `silver` is denied.
-  - `stand`, as `u16_datareader` (`db_datareader` only, the Viewer model): names show as `Xxxxx`,
-    birth dates as 1900-01-01, and postal codes as the first three characters plus `xx`.
-  - `stand`, as `u16_phi_reader`: values equal what `sa` reads, phone included.
-  - The logins exist only in test setup and are dropped afterwards.
-- Reverse: delete `30_security.sql` and the `MASKED WITH` clauses, then
-  `DROP ROLE gold_reader, gold_phi_reader`.
+- No deploy was run and no cloud call was made.
+- To verify in U20:
+  - the OIDC assertion against Entra;
+  - `$items` lookup of Terraform items;
+  - Dataflow deploy by a service principal (the docs conflict);
+  - pipeline runs of items owned by the service principal;
+  - the Dataflow's SharePoint connection binding and its destination, which the definition
+    API cannot author.
 
-## Approaches not taken
+## Reversal
 
-- **B. Column whitelist: `GRANT SELECT` per table plus a column list on `dim_patient`.** It fails
-  closed for new columns, but it must list every Gold table. The classification test covers new
-  columns instead.
-- **C. Masks added by `ALTER COLUMN ... ADD MASKED` in `30_security.sql`.** It keeps the security
-  in one file, but `ALTER COLUMN` is in preview in Fabric.
+Revert the PR. Nothing in the cloud depends on it. After a deploy:
 
-## Implementation notes (2026-10-28)
-
-- sqlfluff (tsql) cannot parse `DENY SELECT ON t (col)`. It parses `DENY SELECT (col) ON t`, which
-  both engines accept.
-- mssql_python pools connections, so the test kills the login's sessions before it drops the login.
-- Negative control, rerun after the spec change: one rebuild with the `phone, postal_code` DENY, the
-  `UNMASK` and the `given_name` mask removed. Five tests failed: masks, denied set, datareader masked
-  view, reader denial and clear view. All passed after the restore: 10 security tests, plus 11
-  `stand` tests across Gold, PHI and metrics.
+- delete the deployed code items from Test and Prod, or redeploy an older commit;
+- remove the federated credentials and the GitHub environments.

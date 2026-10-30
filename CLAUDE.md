@@ -56,5 +56,9 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
   owner applies from `docker compose run --rm infra` after `az login` (`infra/README.md`)
 - `make kql-test` — without `make up`: start the Kusto emulator alone (4 GB cap), run the `kusto`
   tests on `fabric/kqldb_beds.KQLDatabase/DatabaseSchema.kql`, remove the emulator
+- `make deploy ENVIRONMENT=Test|Prod` — `fabric-cicd` deploy of `fabric/` with `fabric/parameter.yml`;
+  run by `.github/workflows/deploy.yml` (manual dispatch, GitHub OIDC, no secret); never run it
+  from a session without the owner's go-ahead (cloud). `make republish ENVIRONMENT=…` — Dataflow
+  Gen2 apply-changes as the owner (device code; service principals are rejected). ADR 0004
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`

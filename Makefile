@@ -6,7 +6,7 @@ else
 RUN := docker compose run --rm dev
 endif
 
-.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history quality replay kql-test secrets up down tf-check
+.PHONY: setup lint test test-slow test-stand synth sources bronze silver mpi mpi-eval gold metric-reference bed-history quality replay kql-test secrets up down tf-check deploy republish
 
 setup:
 	docker compose build dev
@@ -87,6 +87,15 @@ kql-test:
 	docker compose up -d kusto
 	$(RUN) sh -c 'uv sync --frozen --quiet && uv run pytest -m kusto'; status=$$?; \
 		docker compose rm -sf kusto; exit $$status
+
+# Deploy fabric/ to ENVIRONMENT (Test or Prod) with fabric-cicd; run by .github/workflows/deploy.yml.
+# Needs FABRIC_WORKSPACE_ID, the identity and the parameter.yml variables (README, Deployment).
+deploy:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/deploy.py deploy --environment $(ENVIRONMENT)'
+
+# After a deploy that changed a dataflow: apply its changes as the owner (device code sign-in).
+republish:
+	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/deploy.py republish --environment $(ENVIRONMENT)'
 
 secrets:
 	$(RUN) gitleaks git --redact --verbose .

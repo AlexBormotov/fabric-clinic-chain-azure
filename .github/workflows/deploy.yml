@@ -1,0 +1,62 @@
+name: deploy
+
+# Manual only: deploys fabric/ to Test, then to Prod when asked. Never runs on push.
+# Identity: the deployer service principal through GitHub OIDC (federated credential, no secret).
+# Values come from GitHub environment variables, not secrets; see README, Deployment.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Last environment to deploy (Prod deploys Test first)
+        type: choice
+        options: [Test, Prod]
+        default: Test
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: Test
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      FABRIC_WORKSPACE_ID: ${{ vars.FABRIC_WORKSPACE_ID }}
+      FABRIC_SQL_CONNECTION_ID: ${{ vars.FABRIC_SQL_CONNECTION_ID }}
+      FABRIC_BLOB_CONNECTION_ID: ${{ vars.FABRIC_BLOB_CONNECTION_ID }}
+      SHAREPOINT_SITE_URL: ${{ vars.SHAREPOINT_SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: make setup
+      - run: make deploy ENVIRONMENT=Test
+      - run: echo "If a dataflow changed, run \`make republish ENVIRONMENT=Test\` as the owner." >> "$GITHUB_STEP_SUMMARY"
+
+  prod:
+    needs: test
+    if: inputs.target == 'Prod'
+    runs-on: ubuntu-latest
+    environment: Prod
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      FABRIC_WORKSPACE_ID: ${{ vars.FABRIC_WORKSPACE_ID }}
+      FABRIC_SQL_CONNECTION_ID: ${{ vars.FABRIC_SQL_CONNECTION_ID }}
+      FABRIC_BLOB_CONNECTION_ID: ${{ vars.FABRIC_BLOB_CONNECTION_ID }}
+      SHAREPOINT_SITE_URL: ${{ vars.SHAREPOINT_SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: make setup
+      - run: make deploy ENVIRONMENT=Prod
+      - run: echo "If a dataflow changed, run \`make republish ENVIRONMENT=Prod\` as the owner." >> "$GITHUB_STEP_SUMMARY"

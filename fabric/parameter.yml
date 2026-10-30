@@ -1,0 +1,153 @@
+# fabric-cicd 1.4.0 parameterization (U19). Environment keys match `scripts/deploy.py --environment`.
+# No real ID is committed:
+# - $workspace.$id is the target workspace;
+# - $items.<type>.<name>.$id is looked up by name in the target workspace at deploy time, so it also
+#   finds the lakehouses and the warehouse that Terraform creates (infra/modules/fabric);
+# - $ENV:<name> comes from the GitHub environment variables (needs the feature flag
+#   enable_environment_variable_replacement, set by clinic_chain.deploy).
+# tests/test_deploy.py proves that every zero GUID and placeholder under fabric/ is covered.
+
+find_replace:
+  # Notebooks: default lakehouse and its workspace.
+  - find_value: '#\s*META\s+"default_lakehouse":\s*"(0{8}-0{4}-0{4}-0{4}-0{12})"'
+    is_regex: "true"
+    item_type: Notebook
+    item_name: nb_bronze
+    replace_value:
+      Test: $items.Lakehouse.lh_bronze.$id
+      Prod: $items.Lakehouse.lh_bronze.$id
+  - find_value: '#\s*META\s+"default_lakehouse":\s*"(0{8}-0{4}-0{4}-0{4}-0{12})"'
+    is_regex: "true"
+    item_type: Notebook
+    item_name: [nb_silver, nb_mpi, nb_bed_history, nb_quality]
+    replace_value:
+      Test: $items.Lakehouse.lh_silver.$id
+      Prod: $items.Lakehouse.lh_silver.$id
+  - find_value: '#\s*META\s+"default_lakehouse_workspace_id":\s*"(0{8}-0{4}-0{4}-0{4}-0{12})"'
+    is_regex: "true"
+    item_type: Notebook
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id
+
+  # nb_silver reads Bronze through an absolute OneLake path.
+  - find_value: 'abfss://(0{8}-0{4}-0{4}-0{4}-0{12})@onelake\.dfs\.fabric\.microsoft\.com/'
+    is_regex: "true"
+    item_type: Notebook
+    item_name: nb_silver
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id
+  - find_value: 'onelake\.dfs\.fabric\.microsoft\.com/(0{8}-0{4}-0{4}-0{4}-0{12})/Tables'
+    is_regex: "true"
+    item_type: Notebook
+    item_name: nb_silver
+    replace_value:
+      Test: $items.Lakehouse.lh_bronze.$id
+      Prod: $items.Lakehouse.lh_bronze.$id
+
+  # Dataflow: SharePoint site with the workbooks.
+  - find_value: https://example.sharepoint.com/sites/clinic-chain
+    item_type: Dataflow
+    item_name: df_sharepoint
+    replace_value:
+      Test: $ENV:SHAREPOINT_SITE_URL
+      Prod: $ENV:SHAREPOINT_SITE_URL
+
+  # Semantic model (U10): Direct Lake on OneLake over the Gold warehouse, <workspace>/<item>.
+  # The workspace rule runs first; the warehouse rule then matches any GUID in that position.
+  - find_value: 'onelake\.dfs\.fabric\.microsoft\.com/(0{8}-0{4}-0{4}-0{4}-0{12})/'
+    is_regex: "true"
+    item_type: SemanticModel
+    item_name: sm_clinic_chain
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id
+  - find_value: 'onelake\.dfs\.fabric\.microsoft\.com/[0-9a-fA-F-]{36}/(0{8}-0{4}-0{4}-0{4}-0{12})'
+    is_regex: "true"
+    item_type: SemanticModel
+    item_name: sm_clinic_chain
+    replace_value:
+      Test: $items.Warehouse.wh_gold.$id
+      Prod: $items.Warehouse.wh_gold.$id
+
+key_value_replace:
+  # KQL database (U12): child of the eventhouse Terraform creates.
+  - find_key: $.parentEventhouseItemId
+    item_type: KQLDatabase
+    item_name: kqldb_beds
+    replace_value:
+      Test: $items.Eventhouse.eh_beds.$id
+      Prod: $items.Eventhouse.eh_beds.$id
+
+  # Pipeline: sinks write to lh_bronze in the target workspace.
+  - find_key: $.properties.activities[*].typeProperties.sink.datasetSettings.linkedService.properties.typeProperties.artifactId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Lakehouse.lh_bronze.$id
+      Prod: $items.Lakehouse.lh_bronze.$id
+  - find_key: $.properties.activities[*].typeProperties.sink.datasetSettings.linkedService.properties.typeProperties.workspaceId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id
+
+  # Pipeline: source connections, created by the owner in Fabric (they hold credentials).
+  - find_key: $.properties.activities[?(@.typeProperties.source.type == "AzureSqlSource")].typeProperties.source.datasetSettings.externalReferences.connection
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $ENV:FABRIC_SQL_CONNECTION_ID
+      Prod: $ENV:FABRIC_SQL_CONNECTION_ID
+  - find_key: $.properties.activities[?(@.typeProperties.source.type == "BinarySource")].typeProperties.source.datasetSettings.externalReferences.connection
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $ENV:FABRIC_BLOB_CONNECTION_ID
+      Prod: $ENV:FABRIC_BLOB_CONNECTION_ID
+
+  # Pipeline: the dataflow and notebooks it runs, deployed earlier in the same run.
+  - find_key: $.properties.activities[*].typeProperties.workspaceId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id
+  - find_key: $.properties.activities[?(@.name == "refresh_df_sharepoint")].typeProperties.dataflowId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Dataflow.df_sharepoint.$id
+      Prod: $items.Dataflow.df_sharepoint.$id
+  - find_key: $.properties.activities[?(@.name == "run_nb_bronze")].typeProperties.notebookId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Notebook.nb_bronze.$id
+      Prod: $items.Notebook.nb_bronze.$id
+  - find_key: $.properties.activities[?(@.name == "run_nb_silver")].typeProperties.notebookId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Notebook.nb_silver.$id
+      Prod: $items.Notebook.nb_silver.$id
+  - find_key: $.properties.activities[?(@.name == "run_nb_mpi")].typeProperties.notebookId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Notebook.nb_mpi.$id
+      Prod: $items.Notebook.nb_mpi.$id
+  - find_key: $.properties.activities[?(@.name == "run_nb_bed_history")].typeProperties.notebookId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Notebook.nb_bed_history.$id
+      Prod: $items.Notebook.nb_bed_history.$id
+  - find_key: $.properties.activities[?(@.name == "run_nb_quality")].typeProperties.notebookId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Notebook.nb_quality.$id
+      Prod: $items.Notebook.nb_quality.$id
