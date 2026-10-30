@@ -234,8 +234,12 @@ is a PBIR report bound to it by path, with one page per contour: occupancy, qual
 - Measures carry the metric names of [`GLOSSARY.md`](GLOSSARY.md) and follow its definitions.
 - RLS: the role `clinic` keeps the `dim_clinic` rows mapped to `USERPRINCIPALNAME()` in
   `gold.user_clinic` ([`sql/gold/30_access.sql`](sql/gold/30_access.sql)); facts follow through
-  their relationships. The table is never reloaded or committed with rows; U17 fills it and adds
-  role members. Model RLS does not bind workspace Admins, Members or Contributors.
+  their relationships. The table is never reloaded or committed with rows: each environment fills
+  it from a git-ignored copy of [`sql/fabric/user_clinic.example.sql`](sql/fabric/user_clinic.example.sql),
+  and the role's one member is the Entra group of clinic users. Model RLS does not bind workspace
+  Admins, Members or Contributors.
+- Under RLS a clinic user's facts stop at their clinics, so `readmission_30d_rate` averages
+  `gold.fact_stay.readmitted_30d`, which `gold.reload` computes over every stay of the chain.
 - The OneLake URL in `expressions.tmdl` holds zero GUIDs for workspace and Warehouse; deployment
   (U19) replaces them per environment.
 
@@ -303,3 +307,19 @@ does not accept a service principal for that job. Run it yourself:
 1. Set `FABRIC_WORKSPACE_ID` in your shell, or in the git-ignored compose environment file.
 2. Run `make republish ENVIRONMENT=Test`.
 3. Sign in with the device code it prints.
+
+## PHI security
+
+[ADR 0005](docs/adr/0005-direct-lake-vs-phi-security.md) records how the layers fit:
+
+- **Gold (SQL):** U16 denies PHI columns to `gold_reader` and masks them for everyone else.
+- **Silver (OneLake):** Terraform sets OneLake security roles on every `lh_silver`. `DefaultReader`
+  (everyone with ReadAll) reads the non-PHI tables only; `PhiReader` (one Entra group,
+  `phi_reader_group_id`) reads all. The PHI class is `patient_record` and `staff`; the classes are in
+  [`infra/modules/fabric/lh_silver_roles.json`](infra/modules/fabric/lh_silver_roles.json).
+- **Model:** a fixed-identity connection, so clinic users need no access to the Warehouse and model
+  RLS is the only path to the data.
+
+`make test` checks that every table the notebooks write is in exactly one class, that tables with
+name, birth, phone or postal columns are PHI, that only `PhiReader` reads PHI, and that Terraform
+defines every role. The cloud behaviour is verified in U20.

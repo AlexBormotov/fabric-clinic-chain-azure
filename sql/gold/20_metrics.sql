@@ -43,17 +43,7 @@ discharged AS (
 index_stay AS (
     SELECT
         f.clinic_id,
-        CASE
-            WHEN EXISTS (
-                SELECT 1
-                FROM gold.fact_stay AS n
-                WHERE
-                    n.master_patient_id = f.master_patient_id
-                    AND n.admitted_at > f.discharged_at
-                    AND n.admitted_at <= DATEADD(DAY, 30, f.discharged_at)
-            ) THEN CAST(1 AS float)
-            ELSE CAST(0 AS float)
-        END AS readmitted
+        CAST(f.readmitted_30d AS float) AS readmitted
     FROM gold.fact_stay AS f
     CROSS JOIN period AS p
     WHERE f.discharged_at < DATEADD(DAY, -30, p.window_stop)

@@ -81,6 +81,8 @@ CREATE TABLE gold.fact_encounter (
 );
 
 -- One row per ADT stay (A01 admission to A03 discharge; discharged_at NULL while open).
+-- readmitted_30d: the same master patient is admitted again, at any clinic, within 30 days after
+-- discharge. Precomputed over all stays, so clinic RLS in the model cannot hide the readmission.
 DROP TABLE IF EXISTS gold.fact_stay;
 CREATE TABLE gold.fact_stay (
     stay_id varchar(50) NOT NULL,
@@ -89,7 +91,8 @@ CREATE TABLE gold.fact_stay (
     admit_date_key int NOT NULL,
     admitted_at datetime2(6) NOT NULL,
     discharged_at datetime2(6) NULL,
-    length_of_stay_days decimal(12, 6) NULL
+    length_of_stay_days decimal(12, 6) NULL,
+    readmitted_30d bit NOT NULL
 );
 
 -- One row per stay segment (admission or transfer to a bed) and calendar day it covers.

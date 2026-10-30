@@ -32,6 +32,8 @@ provider "azapi" {
   subscription_id = var.subscription_id
 }
 
+# preview: fabric_onelake_data_access_security (OneLake security roles, U17) is a preview resource.
 provider "fabric" {
   use_cli = true
+  preview = true
 }
