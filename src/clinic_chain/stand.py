@@ -1,6 +1,8 @@
 """Local source stand: SQL Server (billing) and Azurite (FHIR, lab, ADT files) in docker compose.
 
 The SharePoint stand-in is the folder `data/sources/sharepoint/` itself; nothing is loaded for it.
+For the cloud run the same loaders take the Azure SQL server and Blob endpoint; both are Entra-only,
+so they connect with the owner's `az login` token (`AzureCliCredential`), never a password or key.
 """
 
 import os
@@ -11,6 +13,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import mssql_python
+from azure.identity import AzureCliCredential
 from azure.storage.blob import BlobServiceClient
 
 from clinic_chain.sources import contracts
@@ -29,9 +32,19 @@ EVENTHUBS_HEALTH = "http://eventhubs:5300/health"
 
 
 def sql(
-    database: str = DATABASE, user: str = "sa", password: str | None = None
+    database: str = DATABASE,
+    user: str = "sa",
+    password: str | None = None,
+    server: str | None = None,
 ) -> mssql_python.Connection:
-    """Connect as `sa` by default; tests pass a login of their own."""
+    """Connect as `sa` by default; tests pass a login of their own. With `server` (Azure SQL),
+    connect with the owner's `az login` token instead."""
+    if server:
+        return mssql_python.connect(
+            f"Server={server},1433;Database={database};Encrypt=yes;",
+            autocommit=True,
+            token_provider=AzureCliCredential(),
+        )
     password = password or os.environ["MSSQL_SA_PASSWORD"]
     return mssql_python.connect(
         f"Server=sqlserver,1433;Database={database};UID={user};PWD={password};"
@@ -40,7 +53,10 @@ def sql(
     )
 
 
-def blobs() -> BlobServiceClient:
+def blobs(endpoint: str | None = None) -> BlobServiceClient:
+    """Azurite by default; with `endpoint` (Azure Blob), the owner's `az login` token."""
+    if endpoint:
+        return BlobServiceClient(endpoint, credential=AzureCliCredential())
     return BlobServiceClient.from_connection_string(AZURITE)
 
 
@@ -71,10 +87,14 @@ def typed_rows(spec: dict, rows: list[list]) -> list[tuple]:
     ]
 
 
-def load_billing(sources: Path, ddl: Path, specs: dict[str, dict]) -> None:
-    with sql("master") as conn:
-        conn.cursor().execute(f"IF DB_ID('{DATABASE}') IS NULL CREATE DATABASE {DATABASE}")
-    with sql() as conn:
+def load_billing(
+    sources: Path, ddl: Path, specs: dict[str, dict], server: str | None = None
+) -> None:
+    """On Azure SQL (`server`) the database already exists: Terraform creates it."""
+    if server is None:
+        with sql("master") as conn:
+            conn.cursor().execute(f"IF DB_ID('{DATABASE}') IS NULL CREATE DATABASE {DATABASE}")
+    with sql(server=server) as conn:
         cur = conn.cursor()
         for table in reversed(BILLING_TABLES):
             cur.execute(f"DROP TABLE IF EXISTS billing.{table}")
@@ -87,8 +107,8 @@ def load_billing(sources: Path, ddl: Path, specs: dict[str, dict]) -> None:
             cur.bulkcopy(f"billing.{table}", typed_rows(spec, rows), timeout=600, keep_nulls=True)
 
 
-def upload(files: dict[str, dict[str, Path]]) -> None:
-    service = blobs()
+def upload(files: dict[str, dict[str, Path]], endpoint: str | None = None) -> None:
+    service = blobs(endpoint)
     for name, wanted in files.items():
         container = service.get_container_client(name)
         if not container.exists():
