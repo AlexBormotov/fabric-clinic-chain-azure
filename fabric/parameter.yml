@@ -19,7 +19,7 @@ find_replace:
   - find_value: '#\s*META\s+"default_lakehouse":\s*"(0{8}-0{4}-0{4}-0{4}-0{12})"'
     is_regex: "true"
     item_type: Notebook
-    item_name: [nb_silver, nb_mpi, nb_bed_history, nb_quality]
+    item_name: [nb_silver, nb_mpi, nb_bed_history, nb_quality, nb_bed_reference]
     replace_value:
       Test: $items.Lakehouse.lh_silver.$id
       Prod: $items.Lakehouse.lh_silver.$id
@@ -70,6 +70,29 @@ find_replace:
     replace_value:
       Test: $items.Warehouse.wh_gold.$id
       Prod: $items.Warehouse.wh_gold.$id
+
+  # Bed reference loader (U14): the KQL database and the query URI of its eventhouse.
+  - find_value: 'kusto_database\s*=\s*"(0{8}-0{4}-0{4}-0{4}-0{12})"'
+    is_regex: "true"
+    item_type: Notebook
+    item_name: nb_bed_reference
+    replace_value:
+      Test: $items.KQLDatabase.kqldb_beds.$id
+      Prod: $items.KQLDatabase.kqldb_beds.$id
+  - find_value: https://example.kusto.fabric.microsoft.com
+    item_type: Notebook
+    item_name: nb_bed_reference
+    replace_value:
+      Test: $items.Eventhouse.eh_beds.$queryserviceuri
+      Prod: $items.Eventhouse.eh_beds.$queryserviceuri
+
+  # Activator (U14): the Teams recipient of the occupancy alert.
+  - find_value: alerts@example.com
+    item_type: Reflex
+    item_name: act_ward_occupancy
+    replace_value:
+      Test: $ENV:ALERT_TEAMS_RECIPIENT
+      Prod: $ENV:ALERT_TEAMS_RECIPIENT
 
 key_value_replace:
   # KQL database (U12): child of the eventhouse Terraform creates.
@@ -151,3 +174,52 @@ key_value_replace:
     replace_value:
       Test: $items.Notebook.nb_quality.$id
       Prod: $items.Notebook.nb_quality.$id
+
+  # Pipeline: the bed reference loader (U14).
+  - find_key: $.properties.activities[?(@.name == "run_nb_bed_reference")].typeProperties.notebookId
+    item_type: DataPipeline
+    item_name: pl_land_sources
+    replace_value:
+      Test: $items.Notebook.nb_bed_reference.$id
+      Prod: $items.Notebook.nb_bed_reference.$id
+
+  # Real-Time Dashboard (U14): its data source is kqldb_beds in the target workspace;
+  # fabric-cicd fills the empty clusterUri from that database.
+  - find_key: $.dataSources[*].databaseArtifactId
+    item_type: KQLDashboard
+    item_name: rtd_beds
+    replace_value:
+      Test: $items.KQLDatabase.kqldb_beds.$id
+      Prod: $items.KQLDatabase.kqldb_beds.$id
+  - find_key: $.dataSources[*].database
+    item_type: KQLDashboard
+    item_name: rtd_beds
+    replace_value:
+      Test: $items.KQLDatabase.kqldb_beds.$id
+      Prod: $items.KQLDatabase.kqldb_beds.$id
+  - find_key: $.dataSources[*].workspace
+    item_type: KQLDashboard
+    item_name: rtd_beds
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id
+
+  # Activator (U14): its KQL source queries kqldb_beds in the target workspace.
+  - find_key: $[*].payload.eventhouseItem.itemId
+    item_type: Reflex
+    item_name: act_ward_occupancy
+    replace_value:
+      Test: $items.KQLDatabase.kqldb_beds.$id
+      Prod: $items.KQLDatabase.kqldb_beds.$id
+  - find_key: $[*].payload.eventhouseItem.workspaceId
+    item_type: Reflex
+    item_name: act_ward_occupancy
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id
+  - find_key: $[*].payload.metadata.workspaceId
+    item_type: Reflex
+    item_name: act_ward_occupancy
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id

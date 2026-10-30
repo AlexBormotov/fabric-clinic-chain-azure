@@ -55,7 +55,8 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
   `infra/`; part of `make lint`. Never `plan` or `apply` against a subscription from an agent: the
   owner applies from `docker compose run --rm infra` after `az login` (`infra/README.md`)
 - `make kql-test` — without `make up`: start the Kusto emulator alone (4 GB cap), run the `kusto`
-  tests on `fabric/kqldb_beds.KQLDatabase/DatabaseSchema.kql`, remove the emulator
+  tests on `fabric/kqldb_beds.KQLDatabase/DatabaseSchema.kql`, remove the emulator; also runs the live
+  map and alert queries and `nb_bed_reference` (U14) against it
 - `make deploy ENVIRONMENT=Test|Prod` — `fabric-cicd` deploy of `fabric/` with `fabric/parameter.yml`;
   run by `.github/workflows/deploy.yml` (manual dispatch, GitHub OIDC, no secret); never run it
   from a session without the owner's go-ahead (cloud). `make republish ENVIRONMENT=…` — Dataflow

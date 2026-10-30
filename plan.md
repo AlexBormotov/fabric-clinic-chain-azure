@@ -1,137 +1,146 @@
 ---
-id: PLAN-U17
-spec: SPEC-001 / U17
+id: PLAN-U14
+spec: SPEC-001 / U14
 owner: AlexBormotov
 status: approach A taken 2026-10-29 under the owner's standing go-ahead
-previous: PLAN-U19 (#19), PLAN-U16 (#18), PLAN-U12 (#20), PLAN-U10 (#17); see git history of this file
+previous: PLAN-U17 (#21), PLAN-U19 (#19), PLAN-U16 (#18), PLAN-U12 (#20); see git history of this file
 ---
 
-# PLAN-U17 — OneLake security and model RLS
+# PLAN-U14 — Live bed map and alert
 
-## Facts this plan rests on
+## Facts this plan rests on (read 2026-10-29)
 
-All read 2026-10-29.
+- Real-Time Dashboard Git format (Learn "KQL Dashboard item definition", `ms.date` 2024-09-19):
+  folder `<name>.KQLDashboard` with `.platform` and `RealTimeDashboard.json`, the dashboard file
+  that the UI exports ("Create a Real-Time Dashboard", `ms.date` 2026-10-11).
+- Its JSON schema is published per version at `https://dataexplorer.azure.com/static/d/schema/<v>/`
+  (`dashboard.json` plus `tile`, `query`, `dataSource`, `parameter`, `baseQuery`, `embeddedApp`).
+  The newest version served is 89 (90 returns HTML; `Last-Modified` 2026-10-04). Vendored under
+  `tests/schemas/kql-dashboard-89/`.
+  - A `kusto-trident` data source requires `clusterUri`, `databaseArtifactId`, `database` ("the
+    Artifact ID of the database, duplicate of databaseArtifactId") and `workspace`.
+  - A `table` tile requires `queryRef`; queries carry `dataSource.dataSourceId` and the KQL text.
+  - Refresh: `autoRefresh` (`minInterval`/`defaultInterval` from `1s` … `1d`) and
+    `changeDetection` (`liveUpdates`: `minRefreshRate` ≥ `10s`, `minRefreshRate_V2` ≥ `5s`,
+    `fallbackRefreshRate` ≥ `30s`). Learn "Live refresh in Real-Time Dashboard" (`ms.date`
+    2026-08-27): live refresh re-queries a visual when `ingestion_time()` of its data advances,
+    else at the fallback interval; it is the default for new dashboards.
+- Activator Git format (Learn "Reflex definition", `ms.date` 2026-02-26): folder `<name>.Reflex`
+  with `.platform` and `ReflexEntities.json`, an array of entities (`container-v1`,
+  `kqlSource-v1`, `timeSeriesView-v1` for events, objects, attributes and rules) whose
+  `definition.instance` is a JSON string. Learn says the easiest valid instance is a UI-built one
+  read back with Get Item Definition.
+  - Learn shows `eventhouseItem.targetUniqueIdentifier`; Microsoft's `skills-for-fabric`
+    (`activator-cli` authoring references, last commit 2026-09-10, "from working readback") uses
+    `eventhouseItem: {itemId, workspaceId, itemType: "KustoDatabase"}` with `itemId` the KQL
+    database, plus required `queryParameters` and `metadata`; snapshot mode (`queryParameters: []`)
+    for a current-state query. `fabric-rti-mcp` (2026-07-16) uses a third shape. Three shapes in
+    Microsoft sources: the format is not stable. Taken: `skills-for-fabric`.
+  - Templates (`skills-for-fabric`, template version `1.2.4`): `SourceEvent`; `EventTrigger` =
+    `FieldsDefaultsStep` (an `EventSelector` row) → `EventDetectStep` (`EventFieldSelector` +
+    change condition such as `NumberBecomes`/`BecomesGreaterThan`) → `ActStep`. `SplitEvent`, the
+    step that maps rows to per-object instances, has no published instance shape anywhere.
+  - Teams action in the definition: only `TeamsMessage` to `recipients` (email addresses, i.e. a
+    chat from the Activator bot). No documented definition shape for group chat or channel post.
+- Activator from a KQL query (Learn "Create Activator alerts from KQL query results", `ms.date`
+  2026-04-17): the UI action menu offers Teams "Message to individuals", "Group chat message" and
+  "Channel post" (team and channel picked from drop-downs); default poll 5 minutes; queries every
+  1–5 minutes keep the eventhouse always on. Rules overview (`ms.date` 2026-03-22): stateful
+  `BECOMES` conditions fire only on entry into the state.
+- fabric-cicd 1.4.0 (source, tag `v1.4.0`): publishes `KQLDashboard` and `Reflex` (publish order
+  after `KQLDatabase`). For a dashboard data source with `clusterUri` `""`, it looks up the KQL
+  database named by the data source `name` among deployed items and fills its query URI. Every
+  text file gets, in order: dashboard processing, logical-ID replacement, `parameter.yml`
+  (`key_value_replace`, then `find_replace`), default-workspace-ID replacement. The docs' "find_replace
+  is not applied" for Activator does not match the 1.4.0 code. Dynamic attributes: `$id` for every
+  type, `$queryserviceuri` only for `Eventhouse`. U19's `deploy.ITEM_TYPES` must list both new types.
+- `notebookutils.credentials.getToken("kusto")` returns a Kusto token (Learn "NotebookUtils
+  credentials", `ms.date` 2026-09-23). Kusto management commands go to `POST
+  <query URI>/v1/rest/mgmt` with `{"db", "csl"}`; the emulator accepts the same without auth.
+- The U12 gap: Fabric Git sync of `DatabaseSchema.kql` runs schema commands only, so nothing loads
+  the `bed` reference table; `ward_occupancy()` is empty in Fabric until something does.
 
-- **OneLake data access roles REST API** (Learn "OneLake Data Access Security - Create Or Update
-  Data Access Roles", updated 2026-09-15): `PUT /v1/workspaces/{ws}/items/{item}/dataAccessRoles`
-  replaces the full role set; a role has `decisionRules` (`effect: Permit`, exactly two `permission`
-  scopes `Path` and `Action`, optional row/column `constraints`) and `members`
-  (`fabricItemMembers` with `itemAccess` + `sourcePath`, `microsoftEntraMembers` with
-  `objectId`/`objectType`/`tenantId`). Single-role upsert and delete exist. Paths look like
-  `/Tables/<name>`.
-- **Terraform** (`microsoft/fabric` 1.14.0, pinned in `infra/versions.tf`; provider docs at tag
-  `v1.14.0`): resource `fabric_onelake_data_access_security`, one role per resource (`workspace_id`,
-  `item_id`, `role_name`, `decision_rules`, `members`), **preview**: needs `preview = true` on the
-  provider. Import id `<ws>/<item>/<role>`.
-- **Lakehouse Git integration** (Learn "Lakehouse git integration and deployment pipelines", dated
-  2026-10-13): data access roles are tracked in `data-access-roles.json`, **preview**, off by
-  default (`alm.settings.json`); Entra member IDs are not tracked; only Admin/Member can sync them.
-- **OneLake security model** (Learn "OneLake security roles, permissions, and scopes", dated
-  2026-08-28): deny by default; roles are grant-only and combine as a union; a lakehouse starts with
-  `DefaultReader` (Read on everything for users with ReadAll); with OneLake security, ReadAll grants
-  data only through `DefaultReader`; Admin, Member and Contributor bypass roles (Write). Role
-  changes take about 5 minutes, group changes about an hour.
-- **Role names** (Learn "OneLake security roles: create and manage", dated 2026-09-25):
-  alphanumeric, start with a letter, case-insensitive.
-- **Direct Lake security** (Learn "Integrate Direct Lake security", updated 2026-09-09): Direct Lake
-  on OneLake checks OneLake security for the effective identity (current user with SSO, or the fixed
-  identity of a bound cloud connection); it never falls back to DirectQuery, failures are errors.
-  Model RLS is not enforced for users with Write on the model (Admin, Member, Contributor). For
-  model-only rules, bind a fixed identity with SSO off and give users no permission on the source.
-  With OneLake security on a lakehouse, its SQL analytics endpoint defaults to delegated (owner)
-  identity; switching it to user identity forces Direct Lake on SQL to DirectQuery.
-- **Engines that enforce OneLake RLS/CLS** (Learn "Read data secured with OneLake security", dated
-  2026-08-28): Direct Lake on OneLake models, Spark, Lakehouse, SQL endpoint in user identity mode.
-- **Silver tables** (this repo): `nb_silver` writes `TABLES`, `FHIR_TABLES`, `patient_record` and
-  `reconciliation`; `nb_mpi` writes `patient_xref`, `patient_match_review`; `nb_bed_history` writes
-  `bed_state_history`, `bed_event`. 17 tables.
+## Settings for every approach
 
-## PHI classification of Silver
+- Dashboard `fabric/rtd_beds.KQLDashboard/`, schema 89, one data source `kqldb_beds`
+  (`clusterUri` `""`, fabric-cicd fills it; IDs zero GUIDs bound by `parameter.yml`). Tiles:
+  ward occupancy from `ward_occupancy()`, bed state from `bed` + `bed_current()` (a bed without
+  events is free), and the newest event with its `ingested_at` for the latency check.
+  Refresh: live refresh at the floors (`10s`, `5s` V2, fallback `30s`) and `autoRefresh` at `10s`.
+- Bed reference load: notebook `nb_bed_reference` (default lakehouse `lh_silver`) reads Silver
+  `bed`, sends one `.set-or-replace bed <| datatable(...)` to the KQL database with a `kusto`
+  token, refuses an empty bed list. Pipeline `pl_land_sources` runs it after `run_nb_silver`.
+  Locally the same code runs against the Kusto emulator.
 
-PHI class (readable only by `PhiReader`): `patient_record` (names, birth date, phone, postal code)
-and `staff` (staff names; personal data, kept with PHI so no name column is in the open class).
-Everything else is non-PHI, by the rule U16 uses for Gold: local patient IDs, `master_patient_id`
-and event dates do not identify a person without the demographics in `patient_record`.
+## The choice: what goes to Git for the alert
 
-## Approaches
+### Approach A — hand-authored Reflex, minimal event graph, plus a manual channel step (taken)
 
-- **A (taken).** Terraform `fabric_onelake_data_access_security` on each environment's `lh_silver`,
-  role contents from `infra/modules/fabric/lh_silver_roles.json` (table classes `phi`/`non_phi`,
-  roles listing classes). `DefaultReader` is narrowed to `non_phi` (members: everyone with ReadAll),
-  `PhiReader` reads both classes (members: one Entra group, optional variable). Provider `preview`
-  turned on.
-- B. Lakehouse Git integration (`data-access-roles.json`). Rejected: preview and opt-in; the
-  lakehouse shells are Terraform-owned and not in `fabric/`; members are not tracked, so a second
-  mechanism is needed anyway.
-- C. JSON plus a script calling `PUT dataAccessRoles`. Rejected: Terraform supports the resource,
-  and a script adds a second deployment path and a credential flow.
+`fabric/act_ward_occupancy.Reflex/` with container → `kqlSource-v1` (snapshot, every 60 s) →
+`SourceEvent` → `EventTrigger` rule. The source query returns one row per poll:
+`max_occupancy` over all wards and the top three wards as text; the threshold stays in the rule
+(`NumberBecomes` `BecomesGreaterThan` 0.90), as Microsoft's guidance says. The action is a
+`TeamsMessage` to a placeholder recipient (`alerts@example.com`, `$ENV:ALERT_TEAMS_RECIPIENT` at
+deploy). A channel post cannot be expressed in the definition, so the owner switches the action to
+"Channel post" in the UI once (README recipe).
 
-RLS membership: one Entra group is the member of the model role `clinic`, assigned after deploy
-(U20); per-user clinic scope is a row in `gold.user_clinic`, written from a git-ignored copy of
-`sql/fabric/user_clinic.example.sql` (placeholder UPNs on `example.com`).
+- Files: `fabric/rtd_beds.KQLDashboard/{.platform,RealTimeDashboard.json}`,
+  `fabric/act_ward_occupancy.Reflex/{.platform,ReflexEntities.json}`,
+  `fabric/nb_bed_reference.Notebook/{.platform,notebook-content.py}`,
+  `fabric/pl_land_sources.DataPipeline/pipeline-content.json`, `fabric/parameter.yml`,
+  `src/clinic_chain/deploy.py` (item types, variable), `.github/workflows/deploy.yml`,
+  `docker-compose.yml` (`ALERT_TEAMS_RECIPIENT`), `tests/test_live_map.py`,
+  `tests/test_deploy.py` (placeholders, `$queryserviceuri`), `tests/schemas/kql-dashboard-89/`,
+  `pyproject.toml`, `uv.lock` (`jsonschema`), `README.md`, `CLAUDE.md`, `tasks/todo.md`, `plan.md`.
+- Invariants: every dashboard and alert query names only tables and functions in
+  `DatabaseSchema.kql` and runs on the emulator; the alert fires above 0.90 and only on crossing;
+  no workspace ID, recipient or channel is committed; a bed load replaces, never appends, and
+  never empties the table.
+- Red checks: fast tests (schema validation; references; threshold; Reflex reference integrity
+  and template steps; loader command); `kusto` tests (dashboard and alert queries on the scenario;
+  loader replaces `bed` twice to the same 7 rows); U19's coverage test for every placeholder.
+- Limits accepted: one network-level stream, so a second ward crossing 0.90 while another ward is
+  still above does not fire again (per-ward objects need `SplitEvent`, undocumented). The Reflex
+  format may be rejected on first deploy; then the recipe below recreates the rule in the UI and
+  the Dev workspace Git sync brings the service's own definition back into `fabric/`.
+- Reverse: delete the three item folders, the activity, the rules and the test; drop the
+  dependency and the two item types.
 
-Readmission fix: `gold.fact_stay.readmitted_30d` (bit) computed in `gold.reload` over every stay of
-the window via `master_patient_id`; the DAX measure and `gold.metric_summary` average the flag.
+### Approach B — no Reflex in Git; queryset + UI-only alert
 
-## Files
+- Only a recipe. Smallest risk of a failed deploy, but nothing about the alert is versioned or
+  testable, and spec U14 asks for both items in Git. Rejected.
 
-- `infra/versions.tf` (provider `preview = true`), `infra/main.tf`, `infra/variables.tf`,
-  `infra/terraform.tfvars.example`, `infra/modules/fabric/{main,variables}.tf`,
-  `infra/modules/fabric/lh_silver_roles.json`.
-- `sql/gold/00_tables.sql`, `sql/gold/10_reload.sql`, `sql/gold/20_metrics.sql`.
-- `fabric/sm_clinic_chain.SemanticModel/definition/tables/fact_stay.tmdl`.
-- `sql/fabric/user_clinic.example.sql`, `.gitignore`.
-- `tests/test_onelake_security.py`, `tests/test_semantic_model.py`.
-- `docs/adr/0005-direct-lake-vs-phi-security.md`, `README.md`, `GLOSSARY.md`, `tasks/todo.md`,
-  `plan.md`.
+### Approach C — per-ward objects (`SplitEvent` + `AttributeTrigger`)
 
-## Invariants and the checks that go red
+- Per-ward transitions, the right semantics. Needs the `SplitEvent` instance shape, which no
+  Microsoft source publishes; a guess fails at deploy time, not in tests. Rejected; revisit by
+  reading back a UI-built rule in U20.
 
-Fast (`make test`), `tests/test_onelake_security.py`:
+### Bed reference load, alternatives rejected
 
-- Every Silver table written by a notebook is in exactly one class
-  (`test_every_silver_table_is_in_exactly_one_class`).
-- A Silver table with a name, birth, phone, address or postal column is in `phi`
-  (`test_tables_with_phi_columns_are_phi`).
-- Only `PhiReader` reads the `phi` class; `DefaultReader` exists and reads `non_phi`
-  (`test_only_the_phi_role_reads_phi`).
-- Every role in the JSON has a Terraform resource reading the JSON, and role names are valid
-  (`test_terraform_defines_every_role`).
-- The RLS membership template has only `example.com` UPNs and known clinics, and its real copy is
-  git-ignored (`test_user_clinic_template_has_no_real_upns`).
+- External table or OneLake shortcut from KQL to `lh_silver.bed`: `.create external table` is not
+  among the commands Git sync runs, so it would still need a post-deploy step, and shortcuts are
+  created in the UI.
+- Copy activity Lakehouse → KQL: append-only semantics to check per run, no local test.
 
-Fast, `tests/test_semantic_model.py`: `readmission_30d_rate` averages `fact_stay[readmitted_30d]`
-and has no cross-stay lookup that RLS would cut (`test_readmission_uses_the_precomputed_flag`).
+## Negative controls
 
-Stand (`make test-stand`): `tests/test_metrics.py::test_gold_metrics_match_the_reference` (Gold
-equals the U09 reference to a relative 1e-6), with `gold.metric_summary` reading the flag.
+- Threshold 0.90 → 0.95 in `ReflexEntities.json`: the threshold test goes red. Restored.
+- `ward_occupancy()` → `ward_occupancies()` in one dashboard query: the reference test and the
+  emulator query test go red. Restored.
+- Loader without the empty-list guard: the guard test goes red. Restored.
 
-`make lint` runs `terraform validate` against the provider schema.
+## U20 measurement: event to dashboard
 
-Negative controls, run 2026-10-29, then reverted:
-
-- `patient_record` moved from `phi` to `non_phi` in the JSON: `test_tables_with_phi_columns_are_phi`
-  failed (`{'patient_record'}`), the other four passed.
-- The U10 measure (cross-stay lookup) restored in `fact_stay.tmdl`:
-  `test_readmission_uses_the_precomputed_flag` failed, the other ten passed.
-
-Stand result, 2026-10-29: `make gold`, then the `stand` tests of `test_gold.py` and
-`test_metrics.py`: 7 passed. On the current synthetic data every 30-day readmission is at the same
-clinic (any clinic / same clinic: boston 162/162, springfield 270/270, worcester 211/211), so the
-U10 bug was latent here; the flag makes the measure correct when a patient moves between clinics.
-
-## Verified in U20 (cloud)
-
-- Terraform creates both roles; overriding `DefaultReader` by name works (else import it first).
-- A user with only ReadAll on `lh_silver` reads `encounter` but gets access denied on
-  `patient_record` (Spark and OneLake API); a `PhiReader` member reads it.
-- Gold reload still reads `silver.patient_record` through the SQL endpoint (delegated mode).
-- A clinic user (model Read only, fixed-identity connection) sees only their clinic, and
-  `readmission_30d_rate` per clinic equals `gold.metric_summary`.
-- Redeploying the model keeps the `clinic` role member.
-- ADR 0005's fallback experiment, if Direct Lake on OneLake fails.
-
-## Reversal
-
-Revert the PR. `terraform apply` then deletes `PhiReader` and the managed `DefaultReader`; recreate
-`DefaultReader` with all data in the portal. `make gold` rebuilds `fact_stay` without the column.
+1. Open `rtd_beds` (live refresh on) next to a terminal showing a UTC clock; record the screen.
+2. Send one event: `date -u +%T.%N; make replay ARGS='--limit 1 --rate 10'` with
+   `ADT_EVENTHUB_CONNECTION_STRING` set to the Eventstream custom endpoint. The printed time is the
+   send time (the summary returns within the send).
+3. Read `ingested_at` of that event on the "Newest event" tile and the recording time at which
+   the tile first shows it. Event to Eventhouse = `ingested_at` − send time; Eventhouse to
+   dashboard = tile time − `ingested_at`. Repeat 5 times (`--limit 1` sends the same event; clear
+   nothing, `event_id` repeats are tolerated) and report each part and the sum.
+4. Alert: run `.set-or-replace` on a copy of `bed` with one ward cut to fewer beds than occupied,
+   or replay until a ward passes 0.90; screenshot the Teams post and the Activator history; restore
+   `bed` by running `nb_bed_reference`. Stop the rule afterwards.

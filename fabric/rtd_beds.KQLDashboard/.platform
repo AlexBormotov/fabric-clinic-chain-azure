@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "KQLDashboard",
+    "displayName": "rtd_beds",
+    "description": "Live bed map: ward occupancy and bed state from kqldb_beds"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "e80c3680-7e1f-4973-b2e1-26e8f949772e"
+  }
+}

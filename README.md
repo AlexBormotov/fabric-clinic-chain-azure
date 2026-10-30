@@ -300,6 +300,7 @@ exists anywhere. One-time owner setup, after `terraform apply` (U18):
 | `FABRIC_SQL_CONNECTION_ID` | Fabric connection to the billing database |
 | `FABRIC_BLOB_CONNECTION_ID` | Fabric connection to the Blob storage account |
 | `SHAREPOINT_SITE_URL` | SharePoint site with `beds.xlsx` and `rosters.xlsx` |
+| `ALERT_TEAMS_RECIPIENT` | Entra user (email) who gets the occupancy alert in Teams |
 
 After a deploy that changed `df_sharepoint`, the dataflow needs an "apply changes" job. Fabric
 does not accept a service principal for that job. Run it yourself:
@@ -323,3 +324,33 @@ does not accept a service principal for that job. Run it yourself:
 `make test` checks that every table the notebooks write is in exactly one class, that tables with
 name, birth, phone or postal columns are PHI, that only `PhiReader` reads PHI, and that Terraform
 defines every role. The cloud behaviour is verified in U20.
+
+## Live bed map and alert
+
+[`fabric/rtd_beds.KQLDashboard/`](fabric/rtd_beds.KQLDashboard/) is the Real-Time Dashboard over
+`kqldb_beds`: ward occupancy from `ward_occupancy()`, the state of every bed (`bed` joined to
+`bed_current()`; a bed without events is free) and the newest event with its `ingested_at`. Live
+refresh runs at the shortest rates the schema allows (5–10 s, 30 s fallback).
+[`fabric/act_ward_occupancy.Reflex/`](fabric/act_ward_occupancy.Reflex/) is the Activator: every
+60 s it reads the highest ward occupancy and the top three wards, and when the highest occupancy
+crosses above 0.90 it sends a Teams message. Both are deployed by fabric-cicd; workspace IDs and
+the recipient (`ALERT_TEAMS_RECIPIENT`) are bound by `fabric/parameter.yml`.
+
+`nb_bed_reference` loads the KQL `bed` table from Silver `bed` with one `.set-or-replace`, after
+`nb_silver` in `pl_land_sources`; Git sync creates the table but no rows, so without it
+`ward_occupancy()` is empty.
+
+By hand in Fabric, once per workspace:
+
+1. Open `act_ward_occupancy`, rule "Ward occupancy above 90%". To post to a channel instead of
+   the recipient's chat, set the action to Teams, Channel post, pick the team and channel, save.
+   The definition format has no channel post, so this stays in the UI.
+2. If the deploy rejects the Activator definition (its format is not stable across Microsoft's
+   own sources), delete the item, open `rtd_beds`, select the "Ward occupancy" tile, Set alert:
+   "On each event when" `occupancy` becomes greater than 0.9, action Teams, Channel post. Then
+   commit the Activator the Dev workspace syncs back to Git.
+
+`make test` validates the dashboard against the published schema (vendored, version 89), checks
+that every query names only objects in `DatabaseSchema.kql`, the Activator wiring and the 0.90
+threshold; `make kql-test` runs every dashboard and alert query and the loader on the emulator.
+How U20 measures event-to-dashboard latency is in `plan.md` (PLAN-U14).

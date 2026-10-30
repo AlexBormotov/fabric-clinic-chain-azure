@@ -1,0 +1,71 @@
+[
+  {
+    "uniqueIdentifier": "c07c36e0-06f6-4d44-930b-6dd8f32d2a7d",
+    "payload": {
+      "name": "Ward occupancy",
+      "type": "kqlQueries"
+    },
+    "type": "container-v1"
+  },
+  {
+    "uniqueIdentifier": "265f967a-bf7f-45e8-83b8-f297d65de8cd",
+    "payload": {
+      "name": "ward_occupancy",
+      "runSettings": {
+        "executionIntervalInSeconds": 60
+      },
+      "query": {
+        "queryString": "ward_occupancy() | top 3 by occupancy desc | summarize max_occupancy = max(occupancy), top_wards = strcat_array(make_list(strcat(clinic_name, \" / \", ward_name, \" \", tostring(occupancy))), \"; \")"
+      },
+      "eventhouseItem": {
+        "itemId": "00000000-0000-0000-0000-000000000000",
+        "workspaceId": "00000000-0000-0000-0000-000000000000",
+        "itemType": "KustoDatabase"
+      },
+      "queryParameters": [],
+      "metadata": {
+        "workspaceId": "00000000-0000-0000-0000-000000000000",
+        "measureName": "",
+        "querySetId": "",
+        "queryId": ""
+      },
+      "parentContainer": {
+        "targetUniqueIdentifier": "c07c36e0-06f6-4d44-930b-6dd8f32d2a7d"
+      }
+    },
+    "type": "kqlSource-v1"
+  },
+  {
+    "uniqueIdentifier": "7ea16927-ab3f-481d-8aaa-3d4a0da845d7",
+    "payload": {
+      "name": "ward_occupancy event",
+      "parentContainer": {
+        "targetUniqueIdentifier": "c07c36e0-06f6-4d44-930b-6dd8f32d2a7d"
+      },
+      "definition": {
+        "type": "Event",
+        "instance": "{\"templateId\":\"SourceEvent\",\"templateVersion\":\"1.2.4\",\"steps\":[{\"name\":\"SourceEventStep\",\"id\":\"c3c955b0-996b-4666-92e6-855d210d7524\",\"rows\":[{\"name\":\"SourceSelector\",\"kind\":\"SourceReference\",\"arguments\":[{\"name\":\"entityId\",\"type\":\"string\",\"value\":\"265f967a-bf7f-45e8-83b8-f297d65de8cd\"}]}]}]}"
+      }
+    },
+    "type": "timeSeriesView-v1"
+  },
+  {
+    "uniqueIdentifier": "3184b45e-6573-41ea-965b-de1de1e1ff56",
+    "payload": {
+      "name": "Ward occupancy above 90%",
+      "description": "Fires when the highest ward occupancy crosses above 0.90",
+      "parentContainer": {
+        "targetUniqueIdentifier": "c07c36e0-06f6-4d44-930b-6dd8f32d2a7d"
+      },
+      "definition": {
+        "type": "Rule",
+        "instance": "{\"templateId\":\"EventTrigger\",\"templateVersion\":\"1.2.4\",\"steps\":[{\"name\":\"FieldsDefaultsStep\",\"id\":\"cd3a2790-f709-4696-9b6b-0b21509215ae\",\"rows\":[{\"name\":\"EventSelector\",\"kind\":\"Event\",\"arguments\":[{\"name\":\"event\",\"kind\":\"EventReference\",\"type\":\"complex\",\"arguments\":[{\"name\":\"entityId\",\"type\":\"string\",\"value\":\"7ea16927-ab3f-481d-8aaa-3d4a0da845d7\"}]}]}]},{\"name\":\"EventDetectStep\",\"id\":\"997108a5-8bf5-4c36-8140-ccb71d22155c\",\"rows\":[{\"name\":\"EventFieldSelector\",\"kind\":\"EventField\",\"arguments\":[{\"name\":\"fieldName\",\"type\":\"string\",\"value\":\"max_occupancy\"}]},{\"name\":\"NumberBecomes\",\"kind\":\"NumberBecomes\",\"arguments\":[{\"name\":\"op\",\"type\":\"string\",\"value\":\"BecomesGreaterThan\"},{\"name\":\"value\",\"type\":\"number\",\"value\":0.9}]}]},{\"name\":\"ActStep\",\"id\":\"aac57099-b765-44ca-83ec-a908eef9a507\",\"rows\":[{\"name\":\"TeamsBinding\",\"kind\":\"TeamsMessage\",\"arguments\":[{\"name\":\"messageLocale\",\"type\":\"string\",\"value\":\"\"},{\"name\":\"recipients\",\"type\":\"array\",\"values\":[{\"type\":\"string\",\"value\":\"alerts@example.com\"}]},{\"name\":\"headline\",\"type\":\"array\",\"values\":[{\"type\":\"string\",\"value\":\"Ward occupancy above 90%\"}]},{\"name\":\"optionalMessage\",\"type\":\"array\",\"values\":[{\"type\":\"string\",\"value\":\"A ward has crossed 90% bed occupancy. Open the rtd_beds live bed map.\"}]},{\"name\":\"additionalInformation\",\"type\":\"array\",\"values\":[{\"kind\":\"NameReferencePair\",\"type\":\"complex\",\"arguments\":[{\"name\":\"name\",\"type\":\"string\",\"value\":\"Highest occupancy\"},{\"kind\":\"EventFieldReference\",\"type\":\"complexReference\",\"name\":\"reference\",\"arguments\":[{\"name\":\"fieldName\",\"type\":\"string\",\"value\":\"max_occupancy\"}]}]},{\"kind\":\"NameReferencePair\",\"type\":\"complex\",\"arguments\":[{\"name\":\"name\",\"type\":\"string\",\"value\":\"Top wards\"},{\"kind\":\"EventFieldReference\",\"type\":\"complexReference\",\"name\":\"reference\",\"arguments\":[{\"name\":\"fieldName\",\"type\":\"string\",\"value\":\"top_wards\"}]}]}]}]}]}]}",
+        "settings": {
+          "shouldRun": true,
+          "shouldApplyRuleOnUpdate": false
+        }
+      }
+    },
+    "type": "timeSeriesView-v1"
+  }
+]

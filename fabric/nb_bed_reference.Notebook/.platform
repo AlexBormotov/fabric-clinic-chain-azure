@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "nb_bed_reference",
+    "description": "Load the bed reference from Silver into the KQL database kqldb_beds"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "96c2dc2f-e88e-46c8-8362-7e3f818ab4cb"
+  }
+}

@@ -555,6 +555,27 @@
             }
           }
         }
+      },
+      {
+        "name": "run_nb_bed_reference",
+        "type": "TridentNotebook",
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "dependsOn": [
+          {
+            "activity": "run_nb_silver",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "notebookId": "00000000-0000-0000-0000-000000000000",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        }
       }
     ]
   }

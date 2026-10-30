@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Reflex",
+    "displayName": "act_ward_occupancy",
+    "description": "Teams alert when a ward's bed occupancy crosses 90%"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "77193dd6-9d94-4842-af8e-762279225d3e"
+  }
+}
