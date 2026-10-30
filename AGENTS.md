@@ -25,8 +25,13 @@ date read, before a decision depends on it.
 
 ## Status
 
-Pre-intent. No code exists yet. Nothing is built before the approval chain below reaches an
-approved `plan.md`.
+`intent.md` (INT-001) and `spec.md` (SPEC-001) are approved. Every unit with a local seam has
+landed on `main` (U01–U19): generators, local source stand, Bronze, Silver, MPI, Gold, metrics,
+semantic model, real-time path, SCD2 history, data quality, PHI protection, Terraform and
+deployment, each checked by `make test` in CI. Remaining: the single cloud run (U20, owner-led,
+`docs/runbook-cloud.md`, evidence in `docs/evidence/cloud-run.md`) and the final documentation
+(U21: README screenshots and results after the run). Each unit still starts from an approved
+`plan.md`.
 
 ## How work proceeds (AI Factory method)
 

@@ -5,8 +5,9 @@ batch (FHIR, Azure SQL, CSV, Excel) through a Lakehouse and Warehouse into a Dir
 model, plus ADT events streamed through Eventstream into Eventhouse with Activator alerts.
 All patient data is synthetic (Synthea).
 
-**Status:** foundation in progress. Scope and work units: [`intent.md`](intent.md),
-[`spec.md`](spec.md).
+**Status:** every local unit has landed (U01–U19); the single cloud run (U20,
+[`docs/runbook-cloud.md`](docs/runbook-cloud.md)) and the final documentation (U21) remain. Scope and
+work units: [`intent.md`](intent.md), [`spec.md`](spec.md).
 
 ## Run it locally
 
@@ -28,11 +29,8 @@ Requirements: Docker with Compose v2 and GNU Make. Everything else runs in the d
 | `make mpi` / `make mpi-eval` | match patient records into `patient_xref` / score it against ground truth |
 | `make gold` | copy Silver into the stand's SQL Server and build the Gold star schema (~30 s) |
 | `make bed-history` | apply new ADT events to the SCD2 bed state history in `bed_state_history` |
-
 | `make quality` | Soda data contracts on Silver; fails when a check fails |
-
 | `make replay` | replay ADT events into the Event Hubs emulator at 50 events/s (`ARGS='--limit 2000'`) |
-
 | `make deploy ENVIRONMENT=Test` | deploy `fabric/` to a Fabric workspace (CI, see Deployment) |
 | `make republish ENVIRONMENT=Test` | republish deployed Dataflows Gen2 as the owner |
 | `make secrets` | gitleaks over the git history |
@@ -353,4 +351,18 @@ By hand in Fabric, once per workspace:
 `make test` validates the dashboard against the published schema (vendored, version 89), checks
 that every query names only objects in `DatabaseSchema.kql`, the Activator wiring and the 0.90
 threshold; `make kql-test` runs every dashboard and alert query and the loader on the emulator.
-How U20 measures event-to-dashboard latency is in `plan.md` (PLAN-U14).
+How U20 measures event-to-dashboard latency: [`docs/runbook-cloud.md`](docs/runbook-cloud.md), step 9.
+
+## Cloud run
+
+[`docs/runbook-cloud.md`](docs/runbook-cloud.md) is the owner's step-by-step for the single cloud
+run (U20): accounts, Terraform, deploy, pipelines, replay, latency, alert, the Direct Lake fallback
+experiment, PHI checks, capacity metrics, the F2 proof, teardown and the cost check. It opens with
+the cost table and marks every step that can spend money or keeps billing. Results go into
+[`docs/evidence/cloud-run.md`](docs/evidence/cloud-run.md). Where the data lives:
+[ADR 0006](docs/adr/0006-data-residency.md).
+
+`scripts/load_stand.py --sql-server … --blob-endpoint …` loads the Azure sources with the owner's
+`az login` token; neither source accepts a password or key. `tests/test_doc_links.py` (also
+`scripts/check_links.py`) checks that every relative link and image in this README and in `docs/`
+resolves.
