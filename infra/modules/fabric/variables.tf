@@ -4,7 +4,7 @@ variable "prefix" {
 }
 
 variable "capacity_name" {
-  description = "Display name of the capacity the workspaces use (the trial)."
+  description = "Display name of the capacity the workspaces use."
   type        = string
 }
 

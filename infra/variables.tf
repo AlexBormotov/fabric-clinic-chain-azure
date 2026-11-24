@@ -14,7 +14,7 @@ variable "owner_upn" {
 variable "location" {
   description = "Azure region for every Azure resource."
   type        = string
-  default     = "westeurope"
+  default     = "swedencentral"
 }
 
 variable "prefix" {
@@ -41,8 +41,9 @@ variable "sql_free_limit_exhaustion" {
 }
 
 variable "fabric_capacity_name" {
-  description = "Display name of the Fabric trial capacity the workspaces run on."
+  description = "Existing capacity the workspaces run on. Ignored when enable_f2 is true."
   type        = string
+  default     = null
 }
 
 variable "git_connection_id" {
@@ -76,7 +77,7 @@ variable "phi_reader_group_id" {
 }
 
 variable "enable_f2" {
-  description = "Create the F2 capacity ($0.44/h in West Europe). Apply true, check, apply false."
+  description = "Create the F2 and run the workspaces on it ($0.38/h in Sweden Central while it runs)."
   type        = bool
   default     = false
 }
