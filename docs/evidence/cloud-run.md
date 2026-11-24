@@ -9,8 +9,10 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 
 ## Run facts
 
-- [ ] **Home region** ("Your data is stored in", step 1.3; ADR 0006). Evidence:
-- [ ] **Fabric trial** capacity name, region, size and end date (step 1.4). Evidence:
+- [x] **Home region** (Help > About, step 1.3; ADR 0006). Evidence: 2026-11-24 — Switzerland North
+  (Zurich).
+- [x] **Fabric trial** (step 1.4). Evidence: 2026-11-24 — refused ("Fabric trial is not available
+  for your account"), 0 capacities; replaced by the F2 (step 4.2).
 - [ ] **Azure subscription** type and tenant (step 1.5). Evidence:
 - [ ] **Budget alert** set at $5 (step 1.6). Evidence:
 - [ ] **CI on `main`** green at the commit deployed (link to the run). Evidence:
@@ -43,7 +45,7 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   (step 13). Evidence:
 - [ ] **AC12 Delivery** — Dev Git-synced (step 5.3); Actions deploy to Test and Prod green (step 6);
   one deployment pipeline promotion (step 6); Terraform apply output (step 4.2); F2 created and
-  destroyed (step 14). Evidence:
+  destroyed (steps 4.2, 16). Evidence:
 - [ ] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no
   cloud. Evidence:
 - [ ] **AC14 Cost** — Azure cost analysis ≤ $10 on day 0 and day 2 (step 17); resource listing empty
@@ -56,10 +58,11 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 
 ### PLAN-U18 Terraform
 
-- [ ] `terraform apply` creates workspaces, items and Azure sources on the trial; SQL database on
+- [ ] `terraform apply` creates workspaces, items and Azure sources on the F2; SQL database on
   the free offer (step 4.2). Evidence:
-- [ ] Fabric CU quota in West Europe allows an F2 on this subscription (step 14). Evidence:
-- [ ] F2 apply → destroy within one sitting, assigned to no workspace, start and end times (step 14).
+- [x] Fabric CU quota allows an F2 on this subscription. Evidence: 2026-11-24 — usages API: Sweden
+  Central 4 CU, West Europe 0.
+- [ ] F2 created (step 4.2), paused between sittings, destroyed (step 16); times recorded.
   Evidence:
 - [ ] Whether the Azure free credit covered the F2 meter (step 17, credits page). Evidence:
 
@@ -121,5 +124,5 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 
 ### Data residency (ADR 0006)
 
-- [ ] Trial capacity, Blob, Azure SQL and F2 all in West Europe; home region recorded
-  (steps 1.3, 1.4, 4.2, 14). Evidence:
+- [ ] F2, Blob and Azure SQL all in Sweden Central; home region recorded (steps 1.3, 4.2).
+  Evidence:
