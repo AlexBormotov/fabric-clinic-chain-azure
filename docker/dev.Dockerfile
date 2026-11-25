@@ -60,3 +60,5 @@ ARG AZURE_CLI_VERSION=2.91.0
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 # azure-cli pins exact pre-release SDKs, which uv refuses without the flag.
 RUN uv tool install --prerelease=allow "azure-cli==${AZURE_CLI_VERSION}"
+# The base image's default command is the Python REPL.
+CMD ["bash"]
