@@ -1,0 +1,8 @@
+sql: clinic_billing
+blob: fhir, lab, adt
+patient_account 16048
+claim 32722
+claim_line 83473
+fhir 1206
+lab 2
+adt 3

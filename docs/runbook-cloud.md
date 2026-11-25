@@ -285,6 +285,8 @@ tenant.
     --blob-endpoint "$(terraform -chdir=infra output -raw blob_endpoint)"
   cd infra
   ```
+- **If it fails with** `not currently available`: the free database pauses after 15 idle minutes and
+  the first connection only wakes it. Wait a minute and run it again.
 - **Expect:** `sql: clinic_billing` and `blob: fhir, lab, adt`. Billing row counts equal the local
   stand's (`make test-stand` locally).
 - **Evidence:** `load-sources.txt` (the output).
@@ -293,9 +295,10 @@ tenant.
 ### 4.4 SharePoint files
 
 - **Who:** owner.
-- **Do:** `https://<tenant>.sharepoint.com` → **Create site** → Team site `clinic-chain`. Upload
-  `data/sources/sharepoint/beds.xlsx` and `rosters.xlsx` to **Documents**. Create a team
-  `clinic-chain` in Teams with a channel `bed-alerts` (needed in step 10).
+- **Do:** Teams → **New team** `clinic-chain` (private) with a channel `bed-alerts` (needed in
+  step 10); it creates the site `https://<tenant>.sharepoint.com/sites/clinic-chain`. In the site's
+  files, upload `data/sources/sharepoint/beds.xlsx` and `rosters.xlsx` once: the dataflow finds them
+  by name.
 - **Cost / time:** $0 / 10 min.
 
 ## 5. Fabric connections, tenant setting, Git integration
@@ -303,8 +306,8 @@ tenant.
 ### 5.1 Service principals in the Fabric API
 
 - **Who:** owner.
-- **Do:** Fabric → Settings → **Admin portal** → **Tenant settings** → Developer settings →
-  **Service principals can call Fabric public APIs** → Enabled for `clinic_chain_deployers` → Apply.
+- **Do:** Fabric → **OneLake catalog** → **Govern** → **Configurations** → **Tenant settings** →
+  Developer settings → **Service principals can call Fabric public APIs** → Enabled for `clinic_chain_deployers` → Apply.
 - **Evidence:** `fabric-sp-setting.png`.
 - **Cost / time:** $0 / 5 min (takes up to 15 min to apply).
 

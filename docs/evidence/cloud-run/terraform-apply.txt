@@ -1,0 +1,111 @@
+random_string.suffix: Creation complete after 0s [id=3gise3]
+module.fabric.fabric_workspace.env["prod"]: Creation complete after 13s [id=9859334c-68fc-4adc-843f-bab23ddfed6f]
+module.fabric.fabric_workspace.env["dev"]: Creation complete after 14s [id=fb5f3ef0-afa8-4470-9ac6-aae23a27c0cb]
+module.fabric.fabric_workspace.env["test"]: Creation complete after 15s [id=d5f466e0-d4a0-48cd-bfd5-ce317106780e]
+module.fabric.fabric_workspace_role_assignment.deployer["test"]: Creation complete after 1s [id=7d62520a-b30e-49f3-8c87-75eaffebc76f]
+module.fabric.fabric_workspace_role_assignment.deployer["prod"]: Creation complete after 1s [id=7d62520a-b30e-49f3-8c87-75eaffebc76f]
+module.fabric.fabric_deployment_pipeline.promotion: Creation complete after 2s [id=4731f22e-ff1a-4fa6-b947-c819d549bd6e]
+module.fabric.fabric_eventhouse.beds["dev"]: Creation complete after 6s [id=95db1a45-e736-49aa-9421-a25b514a47f8]
+module.fabric.fabric_eventhouse.beds["test"]: Creation complete after 6s [id=e1a37ae4-264a-4d21-9751-24fd34afe088]
+module.fabric.fabric_eventhouse.beds["prod"]: Creation complete after 7s [id=63592048-4243-49e6-9615-283a1b663a35]
+module.azure_sources.azurerm_resource_group.sources: Creation complete after 27s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources]
+module.fabric.fabric_warehouse.gold["prod"]: Creation complete after 25s [id=c068aace-49c6-49d9-aa17-b7571cfcf7e0]
+module.fabric.fabric_warehouse.gold["dev"]: Creation complete after 24s [id=406951d9-168e-47b5-ad57-6826682058b2]
+module.fabric.fabric_warehouse.gold["test"]: Creation complete after 24s [id=270ff3b2-d7b5-4eda-ae48-ec4638d08134]
+module.fabric.fabric_lakehouse.lh["prod.lh_silver"]: Creation complete after 38s [id=2a16386a-719e-4757-9c21-920e53e12347]
+module.fabric.fabric_lakehouse.lh["prod.lh_bronze"]: Creation complete after 38s [id=ed9477f9-e105-4138-a390-24f43c1ef6da]
+module.fabric.fabric_lakehouse.lh["dev.lh_silver"]: Creation complete after 39s [id=c738b631-8b49-4068-badc-480d9d99afeb]
+module.fabric.fabric_lakehouse.lh["dev.lh_bronze"]: Creation complete after 38s [id=b810b613-0f0e-4a2c-a94b-610e422c6bca]
+module.fabric.fabric_lakehouse.lh["test.lh_bronze"]: Creation complete after 41s [id=a64f3456-712b-4a44-af57-78d1cb9645da]
+module.azure_sources.azurerm_storage_account.raw: Creation complete after 29s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Storage/storageAccounts/stclinicchain3gise3]
+module.fabric.fabric_lakehouse.lh["test.lh_silver"]: Creation complete after 37s [id=67bb38ea-fc8c-4c7a-8895-e059b98e6283]
+module.azure_sources.azurerm_storage_container.raw["adt"]: Creation complete after 13s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Storage/storageAccounts/stclinicchain3gise3/blobServices/default/containers/adt]
+module.azure_sources.azurerm_storage_container.raw["lab"]: Creation complete after 13s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Storage/storageAccounts/stclinicchain3gise3/blobServices/default/containers/lab]
+module.azure_sources.azurerm_storage_container.raw["fhir"]: Creation complete after 14s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Storage/storageAccounts/stclinicchain3gise3/blobServices/default/containers/fhir]
+module.azure_sources.azurerm_role_assignment.owner_blob: Creation complete after 36s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Storage/storageAccounts/stclinicchain3gise3/providers/Microsoft.Authorization/roleAssignments/fc40e993-4f4e-db64-dabe-62b2ae457072]
+module.azure_sources.azurerm_mssql_server.billing: Creation complete after 1m7s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Sql/servers/sql-clinic-chain-3gise3]
+module.azure_sources.azurerm_mssql_firewall_rule.client["<IP>"]: Creation complete after 3s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Sql/servers/sql-clinic-chain-3gise3/firewallRules/client-<IP>]
+module.azure_sources.azurerm_mssql_firewall_rule.azure_services: Creation complete after 3s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Sql/servers/sql-clinic-chain-3gise3/firewallRules/AllowAzureServices]
+module.azure_sources.azapi_resource.billing_db: Creation complete after 52s [id=/subscriptions/<subscription>/resourceGroups/rg-clinic-chain-sources/providers/Microsoft.Sql/servers/sql-clinic-chain-3gise3/databases/clinic_billing]
+Error: Provider produced inconsistent result after apply
+Error: Provider produced inconsistent result after apply
+Error: Provider produced inconsistent result after apply
+Error: Provider produced inconsistent result after apply
+Error: Provider produced inconsistent result after apply
+Error: Provider produced inconsistent result after apply
+Error: Create operation
+Error Code: EntityConflict / OneSecurityDuplicateRoleName
+Error: Create operation
+Error Code: EntityConflict / OneSecurityDuplicateRoleName
+Error: Create operation
+Error Code: EntityConflict / OneSecurityDuplicateRoleName
+
+The 'OneLake Data Access Security' behavior may change in future releases
+without notice or compatibility guarantees.
+
+(and 5 more similar warnings elsewhere)
+
+Apply complete! Resources: 0 added, 3 changed, 0 destroyed.
+
+Outputs:
+
+blob_endpoint = "https://stclinicchain3gise3.blob.core.windows.net/"
+deployment_pipeline_id = "4731f22e-ff1a-4fa6-b947-c819d549bd6e"
+item_ids = {
+  "dev" = {
+    "eh_beds" = "95db1a45-e736-49aa-9421-a25b514a47f8"
+    "lh_bronze" = "b810b613-0f0e-4a2c-a94b-610e422c6bca"
+    "lh_silver" = "c738b631-8b49-4068-badc-480d9d99afeb"
+    "wh_gold" = "406951d9-168e-47b5-ad57-6826682058b2"
+  }
+  "prod" = {
+    "eh_beds" = "63592048-4243-49e6-9615-283a1b663a35"
+    "lh_bronze" = "ed9477f9-e105-4138-a390-24f43c1ef6da"
+    "lh_silver" = "2a16386a-719e-4757-9c21-920e53e12347"
+    "wh_gold" = "c068aace-49c6-49d9-aa17-b7571cfcf7e0"
+  }
+  "test" = {
+    "eh_beds" = "e1a37ae4-264a-4d21-9751-24fd34afe088"
+    "lh_bronze" = "a64f3456-712b-4a44-af57-78d1cb9645da"
+    "lh_silver" = "67bb38ea-fc8c-4c7a-8895-e059b98e6283"
+    "wh_gold" = "270ff3b2-d7b5-4eda-ae48-ec4638d08134"
+  }
+}
+sql_database_name = "clinic_billing"
+sql_server_fqdn = "sql-clinic-chain-3gise3.database.windows.net"
+storage_account_name = "stclinicchain3gise3"
+workspace_ids = {
+  "dev" = "fb5f3ef0-afa8-4470-9ac6-aae23a27c0cb"
+  "prod" = "9859334c-68fc-4adc-843f-bab23ddfed6f"
+  "test" = "d5f466e0-d4a0-48cd-bfd5-ce317106780e"
+}
+blob_endpoint = "https://stclinicchain3gise3.blob.core.windows.net/"
+deployment_pipeline_id = "4731f22e-ff1a-4fa6-b947-c819d549bd6e"
+item_ids = {
+  "dev" = {
+    "eh_beds" = "95db1a45-e736-49aa-9421-a25b514a47f8"
+    "lh_bronze" = "b810b613-0f0e-4a2c-a94b-610e422c6bca"
+    "lh_silver" = "c738b631-8b49-4068-badc-480d9d99afeb"
+    "wh_gold" = "406951d9-168e-47b5-ad57-6826682058b2"
+  }
+  "prod" = {
+    "eh_beds" = "63592048-4243-49e6-9615-283a1b663a35"
+    "lh_bronze" = "ed9477f9-e105-4138-a390-24f43c1ef6da"
+    "lh_silver" = "2a16386a-719e-4757-9c21-920e53e12347"
+    "wh_gold" = "c068aace-49c6-49d9-aa17-b7571cfcf7e0"
+  }
+  "test" = {
+    "eh_beds" = "e1a37ae4-264a-4d21-9751-24fd34afe088"
+    "lh_bronze" = "a64f3456-712b-4a44-af57-78d1cb9645da"
+    "lh_silver" = "67bb38ea-fc8c-4c7a-8895-e059b98e6283"
+    "wh_gold" = "270ff3b2-d7b5-4eda-ae48-ec4638d08134"
+  }
+}
+sql_database_name = "clinic_billing"
+sql_server_fqdn = "sql-clinic-chain-3gise3.database.windows.net"
+storage_account_name = "stclinicchain3gise3"
+workspace_ids = {
+  "dev" = "fb5f3ef0-afa8-4470-9ac6-aae23a27c0cb"
+  "prod" = "9859334c-68fc-4adc-843f-bab23ddfed6f"
+  "test" = "d5f466e0-d4a0-48cd-bfd5-ce317106780e"
+}
