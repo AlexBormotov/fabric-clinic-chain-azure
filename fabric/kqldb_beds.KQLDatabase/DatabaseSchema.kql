@@ -13,6 +13,8 @@
 
 .create-merge table bed (clinic_id:string, clinic_name:string, ward_id:string, ward_name:string, bed_id:string)
 
+// now(), not ingestion_time(): Fabric tables use streaming ingestion, and a transactional update policy
+// rejects ingestion_time() there (first cloud deploy, 2026-11-25). The policy runs at ingestion.
 .create-or-alter function with (folder = "ingest", docstring = "adt_raw typed as adt_event; update policy query") adt_parse() {
     adt_raw
     | project
@@ -26,7 +28,7 @@
         bed_id = tostring(payload.bed_id),
         from_ward_id = tostring(payload.from_ward_id),
         from_bed_id = tostring(payload.from_bed_id),
-        ingested_at = ingestion_time()
+        ingested_at = now()
 }
 
 .alter table adt_event policy update @'[{"IsEnabled": true, "Source": "adt_raw", "Query": "adt_parse()", "IsTransactional": true, "PropagateIngestionProperties": false}]'

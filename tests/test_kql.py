@@ -152,6 +152,15 @@ def test_update_policy_and_mapping_wire_raw_to_typed():
     assert json.loads(mapping[3]) == [{"column": "payload", "path": "$", "datatype": "dynamic"}]
 
 
+def test_update_policy_runs_under_streaming_ingestion():
+    """Fabric rejects ingestion_time() in a transactional update policy on a streaming table; the
+    emulator cannot enable streaming ingestion, so this is a text check."""
+    policy = re.search(r"\.alter table \w+ policy update @'(.*)'", SCRIPT)
+    (rule,) = json.loads(policy[1])
+    assert rule["IsTransactional"]
+    assert "ingestion_time" not in functions(SCRIPT)[rule["Query"].removesuffix("()")]
+
+
 def test_item_files():
     platform = json.loads((ITEM / ".platform").read_text())
     assert platform["metadata"]["type"] == "KQLDatabase"
