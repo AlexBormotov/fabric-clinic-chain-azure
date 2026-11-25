@@ -280,7 +280,8 @@ exists anywhere. One-time owner setup, after `terraform apply` (U18):
    Terraform as `deployer_principal_id`, which makes it Contributor on Test and Prod.
 2. On the app, add two federated credentials: issuer `https://token.actions.githubusercontent.com`,
    audience `api://AzureADTokenExchange`, subjects
-   `repo:AlexBormotov/fabric-clinic-chain-azure:environment:Test` and `…:environment:Prod`.
+   `repo:AlexBormotov@34210139/fabric-clinic-chain-azure@1428768110:environment:Test` and
+   `…:environment:Prod` (GitHub's immutable subject).
 3. In the Fabric admin portal, allow service principals to use Fabric APIs, for a security group
    that holds the deployer.
 4. In Fabric, create the Azure SQL and Blob Storage connections the pipeline uses. Share them with

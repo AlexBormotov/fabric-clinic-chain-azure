@@ -165,7 +165,12 @@ tenant.
 ### 2.2 Deployer app and federated credentials (no secret)
 
 - **Who:** owner runs; agent can prepare the IDs.
-- **Do:** in the infra shell:
+- **Do:** read the subject prefix first. The repository uses GitHub's immutable subject (owner and
+  repository IDs in the claim), so a subject without the IDs fails with `AADSTS700213`:
+  ```sh
+  gh api repos/AlexBormotov/fabric-clinic-chain-azure/actions/oidc/customization/sub --jq .sub_claim_prefix
+  ```
+  Then in the infra shell:
   ```sh
   APP_ID=$(az ad app create --display-name clinic-chain-deployer --query appId -o tsv)
   SP_ID=$(az ad sp create --id "$APP_ID" --query id -o tsv)
@@ -173,7 +178,7 @@ tenant.
     az ad app federated-credential create --id "$APP_ID" --parameters "{
       \"name\": \"github-$ENV\",
       \"issuer\": \"https://token.actions.githubusercontent.com\",
-      \"subject\": \"repo:AlexBormotov/fabric-clinic-chain-azure:environment:$ENV\",
+      \"subject\": \"repo:AlexBormotov@34210139/fabric-clinic-chain-azure@1428768110:environment:$ENV\",
       \"audiences\": [\"api://AzureADTokenExchange\"]}"
   done
   echo "AZURE_CLIENT_ID=$APP_ID deployer_principal_id=$SP_ID"
@@ -326,7 +331,8 @@ tenant.
 ### 5.3 GitHub connection and Dev Git integration
 
 - **Who:** owner (creates and types the token; it stays in Fabric).
-- **Do:** GitHub → Settings → Developer settings → **Fine-grained token**: only this repository,
+- **Do:** Tenant settings → **Users can synchronize workspace items with GitHub repositories** →
+  Enabled (without it the apply fails with `FeatureNotAvailable`). GitHub → Settings → Developer settings → **Fine-grained token**: only this repository,
   Contents read and write, expiry 7 days. Fabric → Manage connections → **New** → GitHub - Source
   control → paste the token. Put its connection ID in `git_connection_id` in `terraform.tfvars`, then:
   ```sh
