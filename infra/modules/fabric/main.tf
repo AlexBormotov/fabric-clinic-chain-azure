@@ -163,9 +163,8 @@ resource "fabric_onelake_data_access_security" "silver_phi_reader" {
 
   members = {
     microsoft_entra_members = [{
-      object_id   = var.phi_reader_group_id
-      object_type = "Group"
-      tenant_id   = var.tenant_id
+      object_id = var.phi_reader_group_id
+      tenant_id = var.tenant_id
     }]
   }
 }

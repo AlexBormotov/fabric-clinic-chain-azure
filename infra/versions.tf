@@ -12,7 +12,7 @@ terraform {
     }
     fabric = {
       source  = "microsoft/fabric"
-      version = "1.14.0"
+      version = "1.15.1"
     }
     random = {
       source  = "hashicorp/random"

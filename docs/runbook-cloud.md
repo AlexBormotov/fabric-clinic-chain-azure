@@ -262,8 +262,14 @@ tenant.
 - **Expect:** resource group `rg-clinic-chain-sources` (storage, SQL server, `clinic_billing`);
   workspaces `clinic-chain-dev/test/prod` on the trial, each with `lh_bronze`, `lh_silver`,
   `wh_gold`, `eh_beds`; deployment pipeline; deployer Contributor on Test and Prod; `DefaultReader`
-  and `PhiReader` roles on every `lh_silver`. If the apply fails on `DefaultReader` ("already
-  exists"), import it (PLAN-U17) and apply again.
+  and `PhiReader` roles on every `lh_silver`. Fabric creates `DefaultReader` with the
+  lakehouse, so the first apply fails on it (`OneSecurityDuplicateRoleName`). Import it, then plan and
+  apply again; the plan must show 3 to change, 0 to destroy:
+  ```sh
+  # IDs from `terraform output`: workspace_ids.<env> and item_ids.<env>.lh_silver
+  terraform import 'module.fabric.fabric_onelake_data_access_security.silver_default_reader["dev"]' <workspace id>/<lh_silver id>/DefaultReader
+  ```
+  and the same for `test` and `prod`.
 - **Evidence:** `terraform-apply.txt` (the last 40 lines and `terraform output`, IDs are not secret);
   `azure-sql-free-offer.png` (database → Overview shows the free offer).
 - **Cost / time:** < $0.05 / 15 min.
