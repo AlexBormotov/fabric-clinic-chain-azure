@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Eventhouse",
+    "displayName": "eh_beds",
+    "description": ""
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "514a47f8-a25b-9421-49aa-e73695db1a45"
+  }
+}
