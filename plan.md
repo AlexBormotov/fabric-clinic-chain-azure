@@ -1,50 +1,49 @@
 ---
-id: PLAN-U20-f2
-spec: SPEC-001 / U20 (capacity and region of the cloud run)
+id: PLAN-U20-trial
+spec: SPEC-001 / U20 (capacity of the cloud run)
 owner: AlexBormotov
-status: approach A approved by the owner 2026-11-24
-previous: PLAN-U20-prep (#23); see git history of this file
+status: >-
+  the owner asked on 2026-11-24 for the trial if a 60-day one can be had by changing the region, and
+  planned against it on 2026-11-25; the F2 proof needs a separate go-ahead
+previous: PLAN-U20-f2 (#24); see git history of this file
 ---
 
-# PLAN-U20-f2: F2 in Sweden Central instead of the Fabric trial
+# PLAN-U20-trial: the Fabric trial in Sweden Central is the capacity again
 
-PLAN-U20-prep rested on a Fabric trial in West Europe. Both facts proved false on 2026-11-24.
+PLAN-U20-f2 rested on "the tenant is refused a Fabric trial". That proved false: on 2026-11-24 the
+owner got one by choosing Sweden Central.
 
 ## Facts
 
-- Start trial answers "Fabric trial is not available for your account"; no capacity exists. Tenant
-  settings allow Fabric items and paid-feature trials. Community threads report that tenants younger
-  than 90 days are refused; Microsoft Learn does not state it.
-- The free subscription (`FreeTrial_2014-09-01`, spending limit On) has Fabric quota 0 in West Europe,
-  North Europe, Germany West Central and UK South, where SQL provisioning is also restricted. Sweden
-  Central, Spain Central and France Central: quota 4 CU, SQL available. Free subscriptions cannot
-  raise quotas (Learn "Azure subscription and service limits").
-- Azure Retail Prices API, read 2026-11-24: $0.19 per CU-hour in Sweden Central and Spain Central,
-  $0.20 in France Central.
-- Learn "Fabric region availability": Sweden Central runs all Fabric workloads.
-- Learn "Pause and resume": smoothed and carried-forward usage is billed on pause.
-- Learn "Enable capacity overage": on by default for new capacities, 25% threshold, three times the
-  rate, not a hard cap.
-- Learn "Fabric licenses": below F64 each viewer needs Pro, PPU or an individual trial.
-- Not stated by Microsoft: that the $200 credit covers the Fabric meter.
+- `GET https://api.fabric.microsoft.com/v1/capacities`, run by the owner on 2026-11-25:
+  `Trial-20261124T214353Z-…`, SKU `FTL4`, Sweden Central, Active.
+- Learn "Fabric trial capacity" (`ms.date` 2026-08-12, read 2026-11-25): 60 days; F4 or F64; one trial
+  serves several workspaces; Copilot, AI experiences, Trusted Workspace Access and Private Link are not
+  supported; at the end the workspaces go to Pro and the items stay in OneLake for 7 days.
+- Learn "Fabric features by SKU" (`ms.date` 2026-06-30, read 2026-11-25): viewing with a Fabric free
+  licence is marked as supported on a trial; the F4 size is not named. Checked in step 12.
+- Region, quota and F2 price facts of PLAN-U20-f2 still hold.
+- With #24 in place, `enable_f2 = true` moved every workspace to the F2, so a short F2 proof next to a
+  trial would have moved them.
 
 ## Approaches
 
-- **A (taken). F2 in Sweden Central on the free subscription.** The spending limit stays on.
-- **B. Upgrade to pay-as-you-go and request quota in West Europe.** Removes the spending limit.
-  Rejected.
-- **C. No cloud run.** Fails AC3 to AC5 and AC9 to AC12. Rejected.
+- **A (taken). Trial for the workspaces; the F2 created and destroyed once, about 15 minutes.** Back to
+  PLAN-U20-prep, with Sweden Central.
+- **B. Keep the F2 as the capacity.** About $4-8 of credit, pauses between sittings. Rejected: the trial
+  is free.
+- **C. Trial only, no F2.** Fails the "apply and destroy F2" part of U20. Rejected.
 
 ## Files
 
-`infra/` (region default, `fabric_capacity_name` optional, workspaces take the F2 name from the
-capacity resource), `docs/runbook-cloud.md`, `docs/evidence/cloud-run.md`, `docs/adr/0006`,
-`intent.md`, `infra/README.md`, `README.md`, `plan.md`.
+Revert of #24 except the region, the second-subscription note, the alert recipient and the recorded
+evidence: `infra/`, `docs/runbook-cloud.md`, `docs/evidence/cloud-run.md`, `docs/adr/0006`,
+`intent.md`, `README.md`, `plan.md`.
 
 ## Invariants and checks
 
-- Workspaces depend on the F2, so it is created first and destroyed last (reference through
-  `module.capacity`; `make tf-check`).
+- `enable_f2` adds two resources and changes no workspace: the workspaces take their capacity only from
+  `fabric_capacity_name` (`make tf-check`; the plan of step 14 shows 2 to add, 0 to change).
 - `enable_f2` stays false by default: no paid resource without an explicit choice.
 - Links in the docs resolve (`tests/test_doc_links.py`); no secret in the diff (`make secrets`).
 

@@ -217,9 +217,9 @@ event arrived, the rate within 10% and the late and duplicate shares within 1 pe
 
 [`infra/`](infra/README.md) holds the Terraform for the cloud run: Blob storage and the Azure SQL
 free offer, three Fabric workspaces (Dev, Test, Prod) with their lakehouses, warehouse and
-eventhouse, Git integration for Dev, a deployment pipeline and the F2 capacity they run on, created
-only with `enable_f2`, paused between sittings and destroyed at the end. The owner applies it with
-`az login`; nothing secret is committed.
+eventhouse, Git integration for Dev, a deployment pipeline and an F2 capacity that is created and
+destroyed once. Defaults take the cheapest path: workspaces on the Fabric trial, F2 off. The owner
+applies it with `az login`; nothing secret is committed.
 
 ## Semantic model and report
 
@@ -357,7 +357,7 @@ How U20 measures event-to-dashboard latency: [`docs/runbook-cloud.md`](docs/runb
 
 [`docs/runbook-cloud.md`](docs/runbook-cloud.md) is the owner's step-by-step for the single cloud
 run (U20): accounts, Terraform, deploy, pipelines, replay, latency, alert, the Direct Lake fallback
-experiment, PHI checks, capacity metrics, the F2, teardown and the cost check. It opens with
+experiment, PHI checks, capacity metrics, the F2 proof, teardown and the cost check. It opens with
 the cost table and marks every step that can spend money or keeps billing. Results go into
 [`docs/evidence/cloud-run.md`](docs/evidence/cloud-run.md). Where the data lives:
 [ADR 0006](docs/adr/0006-data-residency.md).
