@@ -253,8 +253,8 @@ the new tenant (step 1.4).
   If it fails, stop and record the error; do not press Upgrade. If it succeeds, at once: Fabric admin
   portal → **Capacity settings** → the F2 → **Capacity overage** → off. Then:
   ```sh
-  terraform plan -out tf.plan       # review: sql useFreeLimit = true; workspaces on the F2
-  terraform apply tf.plan
+  terraform plan -out run.tfplan   # review: sql useFreeLimit = true; workspaces on the F2
+  terraform apply run.tfplan
   terraform output
   ```
   **Pause** at the end of every sitting and **resume** at the start of the next; Terraform refuses to
