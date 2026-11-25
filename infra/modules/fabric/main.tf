@@ -62,11 +62,13 @@ resource "fabric_eventhouse" "beds" {
 
 # GitHub needs a Fabric connection that holds the token; the owner creates it in the Fabric UI so the
 # token never passes through Terraform.
+# Dev has its own branch and folder: an update from fabric/ on main would delete the lakehouses, the
+# warehouse and the eventhouse, which Terraform owns and Git does not hold (git/status, 2026-11-25).
 resource "fabric_workspace_git" "dev" {
   count = var.git_connection_id == null ? 0 : 1
 
   workspace_id            = fabric_workspace.env["dev"].id
-  initialization_strategy = "PreferRemote"
+  initialization_strategy = "PreferWorkspace"
 
   git_provider_details = {
     git_provider_type = "GitHub"
