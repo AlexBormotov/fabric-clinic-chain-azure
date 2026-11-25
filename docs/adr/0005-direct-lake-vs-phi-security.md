@@ -40,7 +40,7 @@ Read in Microsoft Learn on 2026-10-29 ("Integrate Direct Lake security", updated
   measure that needs another clinic's rows reads a column Gold precomputes over all rows.
   `readmission_30d_rate` averages `gold.fact_stay.readmitted_30d`.
 - **OneLake security on `lh_silver`, in Terraform** (`fabric_onelake_data_access_security`, preview
-  in provider 1.14.0). `DefaultReader` is narrowed to the non-PHI tables; `PhiReader` reads every
+  in provider 1.15.1; 1.14.0 fails on create). `DefaultReader` is narrowed to the non-PHI tables; `PhiReader` reads every
   table and has one Entra group as member. Table classes are in
   `infra/modules/fabric/lh_silver_roles.json`: PHI = `patient_record` and `staff`. A reader who must
   not see PHI holds item Read and ReadAll on `lh_silver`, never a workspace role.
