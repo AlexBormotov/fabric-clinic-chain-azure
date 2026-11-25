@@ -3,7 +3,8 @@ id: PLAN-U20-trial
 spec: SPEC-001 / U20 (capacity of the cloud run)
 owner: AlexBormotov
 status: >-
-  the owner asked on 2026-11-25 for the trial if a 60-day one can be had by changing the region
+  the owner asked on 2026-11-24 for the trial if a 60-day one can be had by changing the region, and
+  planned against it on 2026-11-25; the F2 proof needs a separate go-ahead
 previous: PLAN-U20-f2 (#24); see git history of this file
 ---
 
