@@ -15,31 +15,32 @@ the evidence file. No step gives the agent a password, key, connection string or
   matching removal step.
 
 Facts behind the prices and terms were read on 2026-10-30, the region, quota and F2 facts on
-2026-11-24; sources are in [`plan.md`](../plan.md) (PLAN-U20-f2) and
-[ADR 0006](adr/0006-data-residency.md).
+2026-11-24, the trial facts on 2026-11-25; sources are in [`plan.md`](../plan.md)
+(PLAN-U20-trial) and [ADR 0006](adr/0006-data-residency.md).
 
 ## Cost
 
-The new tenant was refused a Fabric trial, so the workspaces run on an F2 paid from the Azure free
-credit. It runs only during the sittings and is paused in between.
+Cheapest path (the default): trials and free offers only; the F2 lives for about 15 minutes.
 
 | Item | Terms (read 2026-10-30) | Cheapest path | Expected | If forgotten |
 |---|---|---|---|---|
 | Microsoft 365 Business Basic trial | 1 month free, 25 licences, card required. **Renews to an annual paid term by default.** | Recurring billing **Off** on day one (step 1.2) | $0 | ⏱️ annual term starts at day 30 |
-| Power BI individual trial | 60 days; every viewer on an F2 needs it, Pro or PPU | Start per user | $0 | no charge |
+| Fabric trial | 60 days free, F4 or F64. Items deleted 7 days after it ends | Start in Sweden Central (step 1.4) | $0 | no charge; cancel anyway (step 16) |
+| Power BI individual trial | 60 days; Learn marks free-licence viewing as supported on a trial, without naming the F4 size | Start per user only if a report asks | $0 | no charge |
 | Azure free account | $200 credit for 30 days; $1 card hold; "never charge you unless you decide to move to pay-as-you-go" | Do **not** upgrade to pay-as-you-go | $0 cash; credit used | account disabled at day 30 |
 | Azure SQL free offer | 100,000 vCore-s, 32 GB data, 32 GB backup per month free; `AutoPause` at the limit | Keep `sql_free_limit_exhaustion = "AutoPause"` | $0 | ⏱️ only if switched to `BillOverUsage` (irreversible) |
 | Blob storage, Hot LRS | $0.0196/GB-month; ~1 GB | — | < $0.05 | ⏱️ cents per month |
-| F2 capacity | **$0.38/h = $9.12/day** while it runs (2 CU × $0.19, Sweden Central); usage still owed is billed on pause | Run ~9 h, pause between sittings (step 4.2), destroy at the end (step 16) | ~$3.4 of credit plus usage owed | ⏱️ **$9.12 per day** |
-| F2 capacity overage | 3× rate; on by default for new capacities, 25% threshold (Learn) | Turn it **off** right after creation (step 4.2) | $0 | ⏱️ bills above normal throttling |
-| Eventstream, Eventhouse, Activator, Spark, Warehouse | Run on the F2 | — | in the F2 price | Activator polling keeps the Eventhouse busy: stop the rule (step 10) |
+| F2 capacity | **$0.38/h = $9.12/day** while it exists (2 CU × $0.19, Sweden Central) | Apply, check, destroy in the same sitting (step 14) | ~$0.10 | ⏱️ **$9.12 per day** |
+| F2 capacity overage | 3× rate; on by default for new capacities (Learn) | F2 hosts no workspace, so nothing runs on it | $0 | only with a workspace on F2 |
+| Eventstream, Eventhouse, Activator, Spark, Warehouse | Run on the trial capacity | — | $0 | Activator polling keeps the Eventhouse busy: stop the rule (step 10) |
 | GitHub Actions | Public repository | — | $0 | — |
-| **Total** | | | **$0 cash, ≈ $4–8 of Azure credit** | |
+| **Total** | | | **$0 cash, ≈ $0.20 of Azure credit** | |
 
 The subscription must stay on **Free Trial** with its spending limit on: the portal says "You will not
 be charged for services used during your trial". Microsoft does not state that the credit covers the
-Fabric meter; if it does not, the apply fails. **Never press Upgrade**: it removes the spending limit.
-The target breaks if a ⏱️ item is forgotten: a running F2 burns $9.12 of credit per day.
+Fabric meter; if it does not, the F2 apply (step 14) fails. **Never press Upgrade**: it removes the
+spending limit. The target breaks if a ⏱️ item is forgotten: a running F2 burns $9.12 of credit per
+day.
 
 **Guard rails, set in step 1.6:** a $5 Azure budget alert, and a calendar reminder for the
 Microsoft 365 trial end date.
@@ -52,7 +53,8 @@ Microsoft 365 trial end date.
 | 2 | 8–18: real time, checks, F2, screenshots, teardown, cost | ~4.5 h |
 | +2 days | 17: final cost check (Azure cost data lags up to 48 h) | 10 min |
 
-Never end a sitting with the F2 running: pause it (step 4.2) or destroy it (step 16).
+Do steps 14 and 16 in the same sitting as anything that created them. Never end a sitting with the
+F2 present.
 
 ---
 
@@ -74,8 +76,8 @@ Never end a sitting with the F2 running: pause it (step 4.2) or destroy it (step
 
 ## 1. Accounts
 
-Order: Microsoft 365 trial → Azure free account, all in one tenant. The Fabric trial was refused for
-the new tenant (step 1.4).
+Order fixed by `intent.md`: Microsoft 365 trial → Fabric trial → Azure free account, all in one
+tenant.
 
 ### 1.1 Microsoft 365 Business Basic trial — 💲 card ⏱️ renews
 
@@ -107,16 +109,21 @@ the new tenant (step 1.4).
 - **Evidence:** `fabric-home-region.png`; write the value into the checklist (ADR 0006).
 - **Cost / time:** $0 / 2 min.
 
-### 1.4 Fabric trial: refused
+### 1.4 Fabric trial
 
 - **Who:** owner.
-- **Do:** Fabric → Account manager → **Start trial**. On 2026-11-24 the answer was "Your Power BI
-  trial is active. Fabric trial is not available for your account", with both tenant settings on.
-  The F2 (step 4.2) replaces the trial.
-- **Expect:** **OneLake catalog** → **Govern** → **Capacities** shows 0; a Power BI individual trial
-  is active.
-- **Evidence:** `fabric-trial-refused.png`.
+- **Do:** Fabric → Account manager (photo, top right) → **Start trial** → region **Sweden
+  Central** (change the default) → **Activate**. Then **OneLake catalog** → **Govern** →
+  **Capacities** → **Trial** tab: note the capacity name and size (F4 or F64).
+- **Expect:** a trial capacity in Sweden Central; you are its Capacity administrator.
+- **Evidence:** `fabric-trial.png` (Trial tab: name, region, size, days left).
 - **Cost / time:** $0 / 5 min.
+- **If the trial is refused** ("Fabric trial is not available for your account"): choose another
+  region. On 2026-11-24 the owner was refused first, then got the trial with Sweden Central.
+- **If the button is missing:** tenant settings **Users can try Microsoft Fabric paid features**
+  and **Users can create Fabric items** must be on (Admin portal → Tenant settings).
+  If the tenant cannot start a trial at all, stop and decide: an F2 for the whole run costs
+  $0.38/h while not paused (budget threat; see the end of this file).
 
 ### 1.5 Azure free account in the same tenant — 💲 card hold
 
@@ -234,45 +241,32 @@ the new tenant (step 1.4).
 - **Who:** owner.
 - **Do:** on the host, `curl -s https://api.ipify.org` gives your public IP. Copy
   `infra/terraform.tfvars.example` to `infra/terraform.tfvars` (git-ignored) and fill:
-  `subscription_id`, `owner_upn`, `client_ip_addresses`, `deployer_principal_id` (`$SP_ID`),
-  `phi_reader_group_id`. Keep `enable_f2 = true`; leave `git_connection_id` commented. In the infra
-  shell:
+  `subscription_id`, `owner_upn`, `fabric_capacity_name` (step 1.4), `client_ip_addresses`,
+  `deployer_principal_id` (`$SP_ID`), `phi_reader_group_id`. Leave `git_connection_id` and
+  `enable_f2` commented. In the infra shell:
   ```sh
   for NS in Microsoft.Storage Microsoft.Sql Microsoft.Fabric; do az provider register --namespace $NS --wait; done
   ```
 - **Cost / time:** $0 / 10 min.
 
-### 4.2 Apply — 💲 ⏱️ F2 $9.12/day while it runs (Blob cents; SQL free offer)
+### 4.2 Apply — 💲 (Blob cents; SQL free offer)
 
-- **Who:** owner, only after an explicit go-ahead.
-- **Do:** first the F2 alone, to see that the free subscription may create one. Write down the time.
+- **Who:** owner.
+- **Do:**
   ```sh
   terraform init
-  terraform apply -target=module.capacity      # the F2 only; quota in Sweden Central is 4 CU
-  ```
-  If it fails, stop and record the error; do not press Upgrade. If it succeeds, at once: Fabric admin
-  portal → **Capacity settings** → the F2 → **Capacity overage** → off. Then:
-  ```sh
-  terraform plan -out run.tfplan   # review: sql useFreeLimit = true; workspaces on the F2
+  terraform plan -out run.tfplan   # review: no fabric_capacity, sql useFreeLimit = true
   terraform apply run.tfplan
   terraform output
   ```
-  **Pause** at the end of every sitting and **resume** at the start of the next; Terraform refuses to
-  plan while the F2 is paused.
-  ```sh
-  F2="$(terraform output -raw f2_capacity_id)"
-  az rest --method post --url "https://management.azure.com$F2/suspend?api-version=2023-11-01"
-  az rest --method post --url "https://management.azure.com$F2/resume?api-version=2023-11-01"
-  az rest --method get --url "https://management.azure.com$F2?api-version=2023-11-01" --query properties.state
-  ```
 - **Expect:** resource group `rg-clinic-chain-sources` (storage, SQL server, `clinic_billing`);
-  workspaces `clinic-chain-dev/test/prod` on the F2, each with `lh_bronze`, `lh_silver`,
+  workspaces `clinic-chain-dev/test/prod` on the trial, each with `lh_bronze`, `lh_silver`,
   `wh_gold`, `eh_beds`; deployment pipeline; deployer Contributor on Test and Prod; `DefaultReader`
   and `PhiReader` roles on every `lh_silver`. If the apply fails on `DefaultReader` ("already
   exists"), import it (PLAN-U17) and apply again.
 - **Evidence:** `terraform-apply.txt` (the last 40 lines and `terraform output`, IDs are not secret);
   `azure-sql-free-offer.png` (database → Overview shows the free offer).
-- **Cost / time:** < $0.05 plus the F2 meter / 25 min.
+- **Cost / time:** < $0.05 / 15 min.
 
 ### 4.3 Load the Azure sources
 
@@ -372,7 +366,7 @@ the new tenant (step 1.4).
 - **Evidence:** `pipeline-run.png` (activity list, all green); `nb-quality-output.png`;
   `silver-reconciliation.csv`: in `lh_silver` SQL endpoint run
   `SELECT * FROM reconciliation ORDER BY 1, 2` and export.
-- **Cost / time:** F2 meter / 45 min or more (a small capacity).
+- **Cost / time:** $0 (trial CU) / 45 min.
 
 ### 7.2 Gold on `wh_gold`
 
@@ -409,8 +403,7 @@ the new tenant (step 1.4).
 - **Evidence:** `report-occupancy.png`, `report-quality.png`, `report-economics.png`.
 - **Cost / time:** $0 / 20 min.
 
-End of sitting 1 is fine here only after the F2 is **paused** (step 4.2): check that its state is
-`Paused`. Blob cents keep billing.
+End of sitting 1 is fine here: nothing billable exists except Blob cents. Do not start step 14.
 
 ## 8. ADT replay into Eventstream
 
@@ -552,9 +545,9 @@ Group and role changes take minutes to an hour (ADR 0005). Do item 1 (grants) fi
 - **Who:** owner.
 - **Do:**
   1. Fabric → **Apps** → **Get apps** → "Microsoft Fabric Capacity Metrics" → install, connect to
-     the F2.
-  2. The F2 is small, so the workload below should exceed it. If Spark jobs are rejected outright,
-     raise it to F4 (Azure portal → **Change size**; quota 4 CU) and note the change.
+     the trial capacity.
+  2. If the trial is F64, lower it to F4 (Govern → Capacities → Trial → **Change size**) so the
+     workload can exceed it.
   3. Workload: run `pl_land_sources` again (background) and, at the same time, a notebook in Test
      with this cell for 15 minutes (interactive DAX):
      ```python
@@ -576,18 +569,27 @@ Group and role changes take minutes to an hour (ADR 0005). Do item 1 (grants) fi
   `capacity.md` (agent: what the numbers mean).
 - **Cost / time:** $0 / 60 min, mostly waiting.
 
-## 14. F2 before teardown — ⏱️ $9.12/day until destroyed
+## 14. F2 apply and destroy — 💲 ⏱️ $9.12/day, same sitting
 
-- **Who:** owner, in the same sitting as step 16.
-- **Do:** the F2 was created in step 4.2 and goes with `terraform destroy` in step 16, after the
-  workspaces. If it is paused, resume it first. Screenshot it in the portal now; after step 16:
+- **Who:** owner, only after an explicit go-ahead.
+- **Do:** in the infra shell, write down the time, then:
   ```sh
+  az rest --method get --url "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/providers/Microsoft.Fabric/locations/swedencentral/usages?api-version=2023-11-01"
+  terraform apply -var enable_f2=true        # quota must leave ≥ 2 CU; the plan must only add 2
+  terraform output f2_capacity_id
+  ```
+  Portal → the F2 → screenshot. Fabric admin portal → Capacity settings → the F2 → **Capacity
+  overage**: leave it off (or turn it off). Then at once:
+  ```sh
+  terraform apply -var enable_f2=false
   az resource list --resource-type Microsoft.Fabric/capacities -o table   # must be empty
   ```
-- **Expect:** the F2 is gone after step 16.
-- **Evidence:** `f2-created.png`, `f2-destroy.txt` (destroy output and the empty listing, with the
-  creation and destruction times).
-- **Cost / time:** $0 / 5 min.
+- **Expect:** the F2 exists for about 15 minutes, is assigned to no workspace, and is gone.
+- **Evidence:** `f2-created.png`, `f2-destroy.txt` (apply output and the empty listing, with the
+  two times).
+- **Cost / time:** ~$0.10 / 20 min.
+- **If the apply fails** on quota or on the free subscription: record the error as the evidence and
+  stop. A free subscription cannot raise its quota; do not upgrade to pay-as-you-go for this.
 
 ## 15. Screenshots for the README
 
@@ -607,7 +609,7 @@ Run in this order, in the same sitting as step 14.
   1. Activator rule stopped (step 10). Delete `es_adt` (Eventstream is not in Terraform).
   2. Infra shell: `terraform destroy` (workspaces with every item, Azure sources, roles, pipeline).
   3. `az resource list -o table` → empty. `az group list -o table` → no `rg-clinic-chain-*`.
-  4. Fabric → **OneLake catalog** → **Govern** → **Capacities** shows 0.
+  4. Fabric → Account manager → **Cancel trial** (or Govern → Capacities → Trials → cog → Cancel).
   5. Fabric → Manage connections: delete the SQL, Blob and GitHub connections. GitHub → delete the
      fine-grained token.
   6. Entra: `az ad app delete --id "$APP_ID"`; delete the four groups; admin center → delete the
@@ -617,9 +619,9 @@ Run in this order, in the same sitting as step 14.
      `docker volume rm "$(basename "$PWD")_azure-config"`.
   9. Azure portal → **Subscriptions** → the subscription → **Cancel subscription** (nothing can
      renew or be upgraded by mistake).
-- **Expect:** no resource, no workspace, no capacity, no app.
+- **Expect:** no resource, no workspace, no capacity, no app, no trial.
 - **Evidence:** `teardown-resources.txt` (`az resource list` and `az group list` output, empty),
-  `azure-subscription-cancelled.png`.
+  `fabric-trial-cancelled.png`, `azure-subscription-cancelled.png`.
 - **Cost / time:** $0 / 30 min.
 
 ## 17. Cost check
@@ -628,7 +630,7 @@ Run in this order, in the same sitting as step 14.
 - **Do:** Azure portal → **Cost Management** → **Cost analysis**, scope the subscription, range from
   sign-up to today, group by meter. **Cost Management + Billing** → **Azure credits**: credit used.
   Repeat two days later (cost data lags).
-- **Expect:** total ≤ $10 (target $4–8 of credit, $0 cash); meters only Fabric capacity (F2),
+- **Expect:** total ≤ $10 (target ≈ $0.20 of credit, $0 cash); meters only Fabric capacity (F2),
   Storage, SQL Database (free offer, $0).
 - **Evidence:** `cost-analysis-day0.png`, `cost-analysis-day2.png`, `azure-credits.png`.
 - **Cost / time:** $0 / 10 min + 10 min after two days.
@@ -646,18 +648,18 @@ Run in this order, in the same sitting as step 14.
 
 ## Budget threats
 
-- **F2 left running:** $9.12 of credit per day. Pause it at the end of every sitting; step 16 destroys
-  it and checks `az resource list`. The $5 budget alert is only an e-mail.
-- **Microsoft 365 renewal:** the trial converts to a paid term unless recurring billing is off (step
-  1.2, confirmed in step 18).
-- **Free credit and the Fabric meter:** Microsoft does not state that the $200 credit covers Fabric
-  capacity. If it does not, the apply fails on the free subscription; upgrading to pay-as-you-go
-  removes the spending limit. Decide before continuing.
-- **Capacity overage:** on by default, three times the rate, and the threshold is not a hard cap. Turn
-  it off right after creation (step 4.2).
-- **Pausing bills what is owed:** smoothed and carried-forward usage is billed when the F2 pauses.
-- **Second subscription:** a pay-as-you-go subscription has no spending limit; keep it empty or cancel
-  it.
+- **F2 left running:** $9.12 of credit per day. Step 14 applies and destroys in one go; step 16 checks
+  `az resource list`. The $5 budget alert is only an e-mail.
+- **Microsoft 365 renewal:** the trial converts to an annual paid term unless recurring billing is
+  off (step 1.2, confirmed in step 18).
+- **Fabric trial lost:** trials per tenant are limited and "not guaranteed". Without one, the run
+  needs an F2 for every sitting (PLAN-U20-f2, #24): about $3.4 for 9 h plus usage owed. Decide
+  before continuing.
+- **Free credit and the Fabric meter:** Microsoft does not state that the $200 credit covers
+  Fabric capacity. If it does not, the F2 step fails on the free subscription; upgrading to
+  pay-as-you-go removes the spending protection.
+- **Capacity overage:** on by default for new F capacities, at three times the rate. Harmless here
+  because the F2 hosts no workspace; never assign a workspace to it.
 - **Azure SQL:** `BillOverUsage` cannot be switched back; keep `AutoPause`.
 - **Monday's project:** the Azure free account is one per customer, and this tenant is a throwaway
   trial tenant. Do not reuse it for long-lived work.

@@ -41,9 +41,8 @@ variable "sql_free_limit_exhaustion" {
 }
 
 variable "fabric_capacity_name" {
-  description = "Existing capacity the workspaces run on. Ignored when enable_f2 is true."
+  description = "Display name of the Fabric trial capacity the workspaces run on."
   type        = string
-  default     = null
 }
 
 variable "git_connection_id" {
@@ -77,7 +76,7 @@ variable "phi_reader_group_id" {
 }
 
 variable "enable_f2" {
-  description = "Create the F2 and run the workspaces on it ($0.38/h in Sweden Central while it runs)."
+  description = "Create the F2 capacity ($0.38/h in Sweden Central). Apply true, check, apply false."
   type        = bool
   default     = false
 }

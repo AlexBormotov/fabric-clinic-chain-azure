@@ -1,5 +1,5 @@
-# F2 in its own resource group; the workspaces run on it. Billed per second while it exists and is
-# not paused: suspend it between sittings, destroy it at the end.
+# F2 in its own resource group, assigned to no workspace: it exists only to prove the module and is
+# destroyed right after. Billed per second while it exists and is not paused.
 
 resource "azurerm_resource_group" "capacity" {
   name     = "rg-${var.name}-capacity"

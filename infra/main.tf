@@ -23,7 +23,7 @@ module "fabric" {
   source = "./modules/fabric"
 
   prefix                = var.prefix
-  capacity_name         = var.enable_f2 ? one(module.capacity[*].name) : var.fabric_capacity_name
+  capacity_name         = var.fabric_capacity_name
   git_connection_id     = var.git_connection_id
   github_owner          = var.github_owner
   github_repository     = var.github_repository

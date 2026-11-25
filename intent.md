@@ -78,7 +78,7 @@ Microsoft Fabric is the primary platform; every other tool adapts to it, not the
 - **Budget:** target ≤ $10, ceiling $20 for the entire cloud run.
 - **Accounts:** none exist yet. They are created only when the project is ready for the cloud run,
   because the Microsoft 365 trial lasts 30 days: Microsoft 365 Business Basic trial (recurring
-  billing switched off on day one) → Azure free account with its subscription
+  billing switched off on day one) → Fabric trial (60 days) → Azure free account with its subscription
   in the same tenant. Tenant country: Serbia.
 - **Region:** Sweden Central for capacity, Azure SQL and Blob storage (was West Europe; changed by
   the owner 2026-11-24: the free subscription has no Fabric quota and no SQL provisioning there).
@@ -95,8 +95,7 @@ These are design inputs, recorded here so they are not lost; each is confirmed o
   features are exercised only in the final cloud run.
 - Local stand in Docker: Spark 4.1 + Delta, SQL Server 2022 (billing source and Gold approximation),
   Azure Event Hubs emulator, Kusto emulator; Power BI model and report as PBIP in Git.
-- An F2 is the main capacity, created and destroyed once by Terraform and paused between sittings
-  (was the Fabric trial; changed by the owner 2026-11-24: the new tenant is refused a trial).
+- Fabric trial is the main capacity; F2 is applied and destroyed once to prove the Terraform module.
 - Data quality: Soda v4 (`soda-sparkdf`) made to work on Runtime 2.0.
 - Semantic model: Direct Lake on OneLake over Gold tables without PHI; RLS in the model; DDM and CLS
   in the Warehouse for SQL consumers.

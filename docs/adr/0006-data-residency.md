@@ -1,7 +1,7 @@
 # ADR 0006: Data residency
 
-- Status: accepted 2026-10-30 (PLAN-U20-prep); amended 2026-11-24 (Sweden Central and F2, see
-  Amendment)
+- Status: accepted 2026-10-30 (PLAN-U20-prep); amended 2026-11-24 and 2026-11-25 (Sweden Central,
+  see Amendment)
 - Unit: U20, U21
 
 ## Context
@@ -68,19 +68,23 @@ Read in Microsoft Learn on 2026-10-30:
 - The data residency claim covers Microsoft's regions only. The local machine holds the synthetic
   data, GitHub the code and the evidence; neither is part of the residency boundary.
 
-## Amendment 2026-11-24
+## Amendment 2026-11-24, corrected 2026-11-25
 
-Found while opening the accounts. Where the sections above name West Europe or the trial, this
-section replaces them.
+Found while opening the accounts. Where the sections above name West Europe, this section replaces
+them.
 
 - The tenant's home region is **Switzerland North**. The tenant metadata listed in the context stays
   there, outside the EU; every data row stays in the capacity's region.
-- The new tenant is refused a Fabric trial ("Fabric trial is not available for your account"), so an
-  F2 in the Azure free subscription is the capacity.
-- Read on that subscription from the Fabric `usages` and SQL `capabilities` APIs: West Europe, North
-  Europe, Germany West Central and UK South have a Fabric quota of 0 and restrict SQL provisioning.
-  Sweden Central, Spain Central and France Central have a quota of 4 CU and SQL available. A free
-  subscription cannot raise its quotas (Learn "Azure subscription and service limits").
-- **Decision: Sweden Central** for the F2, Blob and Azure SQL. It is in the EU, runs all Fabric
-  workloads (Learn "Fabric region availability"; only Power BI BCDR is off by default) and has the
-  lowest F2 price of the three ($0.19 per CU-hour, Azure Retail Prices API; Spain Central equal).
+- Read on the free subscription from the Fabric `usages` and SQL `capabilities` APIs: West Europe,
+  North Europe, Germany West Central and UK South have a Fabric quota of 0 and restrict SQL
+  provisioning. Sweden Central, Spain Central and France Central have a quota of 4 CU and SQL
+  available. A free subscription cannot raise its quotas (Learn "Azure subscription and service
+  limits").
+- **Decision: Sweden Central** for the trial capacity, Blob, Azure SQL and the F2. It is in the EU,
+  runs all Fabric workloads (Learn "Fabric region availability"; only Power BI BCDR is off by default)
+  and has the lowest F2 price of the three ($0.19 per CU-hour, Azure Retail Prices API; Spain Central
+  equal).
+- The first version of this amendment (#24) put the workspaces on an F2, because the trial was refused
+  ("Fabric trial is not available for your account"). The owner then got a trial by choosing Sweden
+  Central; the capacities API shows it as FTL4, Sweden Central, Active (2026-11-25). The trial is the
+  capacity again.
