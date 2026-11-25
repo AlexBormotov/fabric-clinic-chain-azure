@@ -20,10 +20,14 @@ accepts Entra logins only and the storage account has shared keys disabled.
 
 ```sh
 docker compose --profile cloud build infra
-docker compose run --rm infra            # shell in /workspace/infra
-az login --use-device-code
+docker compose run --rm --service-ports login   # prints a URL to open in the host browser
+docker compose run --rm infra                   # shell in /workspace/infra
 cp terraform.tfvars.example terraform.tfvars   # fill in IDs and names; git-ignored
 ```
+
+Security defaults block the device code flow in tenants created since 2026-07-01 ([Microsoft
+Learn](https://learn.microsoft.com/en-us/entra/fundamentals/security-defaults), read 2026-11-25), so
+`login` uses the browser flow. The browser returns to a port published on `127.0.0.1` only.
 
 ## Apply order
 

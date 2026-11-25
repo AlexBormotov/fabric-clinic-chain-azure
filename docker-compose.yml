@@ -38,6 +38,19 @@ services:
       - .:/workspace
       - azure-config:/root/.azure
 
+  # `docker compose run --rm --service-ports login`: browser sign-in for the infra container. Security
+  # defaults block the device code flow, so `az login` prints a URL and listens on an ephemeral port;
+  # the sysctl keeps that port inside the range published on the host's loopback.
+  login:
+    extends: infra
+    environment:
+      BROWSER: echo %s
+    sysctls:
+      net.ipv4.ip_local_port_range: 28400 28419
+    ports:
+      - "127.0.0.1:28400-28419:28400-28419"
+    command: az login --scope https://api.fabric.microsoft.com/.default
+
   # Local source stand (`make up`): billing source on SQL Server, raw files on the Blob emulator.
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04

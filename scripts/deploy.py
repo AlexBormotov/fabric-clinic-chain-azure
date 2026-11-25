@@ -1,7 +1,7 @@
 """Deploy fabric/ to Test or Prod, or republish its Dataflows Gen2 there (U19).
 
     deploy.py deploy --environment Test        # GitHub Actions: service principal via OIDC
-    deploy.py republish --environment Test     # owner, device code sign-in
+    deploy.py republish --environment Test     # owner, `az login` in the infra container
 
 The target workspace is FABRIC_WORKSPACE_ID (terraform output workspace_ids).
 """
@@ -18,7 +18,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("action", choices=["deploy", "republish"])
     parser.add_argument("--environment", required=True, choices=ENVIRONMENTS)
-    parser.add_argument("--user", action="store_true", help="sign in as a user (device code)")
+    parser.add_argument("--user", action="store_true", help="use your `az login` (infra container)")
     args = parser.parse_args()
 
     workspace_id = required("FABRIC_WORKSPACE_ID")

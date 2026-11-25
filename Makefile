@@ -93,7 +93,8 @@ kql-test:
 deploy:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/deploy.py deploy --environment $(ENVIRONMENT)'
 
-# After a deploy that changed a dataflow: apply its changes as the owner (device code sign-in).
+# After a deploy that changed a dataflow: apply its changes as the owner. Run it in the
+# infra container: it uses the `az login` there.
 republish:
 	$(RUN) sh -c 'uv sync --frozen --quiet && PYTHONPATH=src uv run python scripts/deploy.py republish --environment $(ENVIRONMENT)'
 

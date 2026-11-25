@@ -150,12 +150,13 @@ tenant.
 
 ### 2.1 Sign in for the CLI
 
-- **Who:** owner (types the device code).
+- **Who:** owner (signs in with the host browser; the device code flow is blocked by security defaults).
 - **Do:** on the host, in the repository root:
   ```sh
   docker compose --profile cloud build infra
+  # prints a URL: open it in the host browser and finish MFA there
+  docker compose run --rm --service-ports login az login --tenant <tenant>.onmicrosoft.com --scope https://api.fabric.microsoft.com/.default
   docker compose run --rm infra                 # shell in /workspace/infra
-  az login --use-device-code --tenant <tenant>.onmicrosoft.com
   az account show --query "{subscription:id, tenant:tenantId, user:user.name}" -o table
   ```
 - **Expect:** the Free Trial subscription and your admin UPN. Keep this shell open for steps 2–4.
@@ -316,7 +317,8 @@ tenant.
 - **Who:** owner (signs in with OAuth; nothing is pasted).
 - **Do:** Fabric → Settings → **Manage connections and gateways** → **New** → Cloud:
   - Azure SQL Database: server = `sql_server_fqdn`, database `clinic_billing`, OAuth 2.0.
-  - Azure Blob Storage: account = `blob_endpoint`, OAuth 2.0 (shared keys are off).
+  - Azure Blob Storage: account = the storage account name, domain = `blob.core.windows.net` (Fabric
+    joins the two), OAuth 2.0 (shared keys are off).
   For each: **Manage users** → add `clinic-chain-deployer` as User. Copy each **Connection ID** into
   the GitHub variables (step 3).
 - **Cost / time:** $0 / 10 min.
@@ -345,9 +347,9 @@ tenant.
   Then, once, in the Test workspace (the definition API cannot set these):
   - `df_sharepoint` → **Manage connections**: bind the SharePoint source with OAuth; check that the
     destination is `lh_bronze` Files; **Save**.
-  - Apply the dataflow changes:
+  - Apply the dataflow changes, in the infra shell:
     ```sh
-    FABRIC_WORKSPACE_ID=<test id> make republish ENVIRONMENT=Test   # device-code sign-in
+    cd /workspace && FABRIC_WORKSPACE_ID=<test id> make republish ENVIRONMENT=Test
     ```
   - `act_ward_occupancy` → rule "Ward occupancy above 90%" → action **Teams** → **Channel post** →
     team `clinic-chain`, channel `bed-alerts` → Save. If the deploy rejected the Reflex, use the
