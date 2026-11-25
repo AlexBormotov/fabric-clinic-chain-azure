@@ -38,6 +38,8 @@ ITEM_TYPES = (
     "KQLDashboard",
     "Reflex",
 )
+# fabric-cicd 1.4.0 publishes KQL databases after notebooks; nb_bed_reference looks up kqldb_beds.
+PUBLISH_FIRST = ("KQLDatabase",)
 TERRAFORM_ITEMS = r"^(lh_bronze|lh_silver|wh_gold|eh_beds)$"
 
 # Values parameter.yml takes from the environment ($ENV:<name>), set per GitHub environment.
@@ -103,14 +105,15 @@ def deploy(repository: Path, environment: str, workspace_id: str, token: TokenCr
         shutil.rmtree(cache)
 
     append_feature_flag("enable_environment_variable_replacement")
-    workspace = FabricWorkspace(
-        workspace_id=workspace_id,
-        repository_directory=str(repository),
-        item_type_in_scope=list(ITEM_TYPES),
-        environment=environment,
-        token_credential=token,
-    )
-    publish_all_items(workspace)
+    for item_types in (PUBLISH_FIRST, ITEM_TYPES):
+        workspace = FabricWorkspace(
+            workspace_id=workspace_id,
+            repository_directory=str(repository),
+            item_type_in_scope=list(item_types),
+            environment=environment,
+            token_credential=token,
+        )
+        publish_all_items(workspace)
     unpublish_all_orphan_items(workspace, item_name_exclude_regex=TERRAFORM_ITEMS)
 
 

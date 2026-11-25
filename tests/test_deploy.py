@@ -217,3 +217,42 @@ def test_deploy_workflow_is_manual_and_uses_no_secret():
 def test_the_owner_signs_in_with_the_cli_login(monkeypatch):
     monkeypatch.delenv("AZURE_TENANT_ID", raising=False)
     assert isinstance(deploy.credential(user=True), AzureCliCredential)
+
+
+def test_every_referenced_item_is_published_before_its_reader():
+    """`$items` finds only items already in the workspace (first cloud deploy, 2026-11-25)."""
+    from fabric_cicd import constants
+
+    order = [t.value for _, t in sorted(constants.SERIAL_ITEM_PUBLISH_ORDER.items())]
+    first = getattr(deploy, "PUBLISH_FIRST", ())
+    late = []
+    for rule in PARAMETERS["find_replace"] + PARAMETERS["key_value_replace"]:
+        match = re.match(r"\$items\.(\w+)\.(\w+)\.", rule["replace_value"]["Test"])
+        if not match or match.groups() in TERRAFORM_ITEMS or match[1] in first:
+            continue
+        if order.index(match[1]) >= order.index(rule["item_type"]):
+            late.append((rule["item_type"], rule.get("item_name"), *match.groups()))
+    assert late == []
+
+
+def test_deploy_publishes_the_first_items_then_everything(monkeypatch, tmp_path):
+    import fabric_cicd
+
+    calls = []
+    for name in PARAMETER_VARIABLES:
+        monkeypatch.setenv(name, "x")
+    monkeypatch.setattr(fabric_cicd, "append_feature_flag", lambda flag: None)
+    monkeypatch.setattr(fabric_cicd, "FabricWorkspace", lambda **kw: kw["item_type_in_scope"])
+    monkeypatch.setattr(fabric_cicd, "publish_all_items", lambda ws: calls.append(("publish", ws)))
+    monkeypatch.setattr(
+        fabric_cicd,
+        "unpublish_all_orphan_items",
+        lambda ws, **kw: calls.append(("unpublish", ws)),
+    )
+    deploy.deploy(tmp_path, "Test", "w", None)
+    everything = list(ITEM_TYPES)
+    assert calls == [
+        ("publish", ["KQLDatabase"]),
+        ("publish", everything),
+        ("unpublish", everything),
+    ]
