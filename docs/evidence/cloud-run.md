@@ -10,12 +10,16 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 ## Run facts
 
 - [x] **Home region** (Help > About, step 1.3; ADR 0006). Evidence: 2026-11-24 — Switzerland North
-  (Zurich).
-- [ ] **Fabric trial** capacity name, region, size and end date (step 1.4). Evidence: 2026-11-25 —
+  (Zurich), cloud-run/fabric-home-region.png.
+- [x] **Fabric trial** capacity name, region, size and end date (step 1.4). Evidence: 2026-11-25 —
   capacities API: `Trial-20261124T214353Z-…`, FTL4, Sweden Central, Active. First refused, then
-  granted on 2026-11-24. End date and `fabric-trial.png` still to capture.
-- [ ] **Azure subscription** type and tenant (step 1.5). Evidence:
-- [ ] **Budget alert** set at $5 (step 1.6). Evidence:
+  granted on 2026-11-24. cloud-run/fabric-trial.png (2026-11-25): 59 days left, so it ends about
+  2027-01-23; three workspaces assigned.
+- [x] **Azure subscription** type and tenant (step 1.5). Evidence: 2026-11-25 — CLI: free trial,
+  spending limit On, tenant `alexengineering.onmicrosoft.com`; current cost 0.00 in the portal
+  (screenshot kept off the public repository).
+- [x] **Budget alert** set at $5 (step 1.6). Evidence: 2026-11-25 — monthly $5 budget `5dollars` on
+  the billing account, which covers the subscription (screenshot kept off the public repository).
 - [ ] **CI on `main`** green at the commit deployed (link to the run). Evidence:
 
 ## Acceptance criteria (INT-001)
@@ -59,8 +63,13 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 
 ### PLAN-U18 Terraform
 
-- [ ] `terraform apply` creates workspaces, items and Azure sources on the trial; SQL database on
-  the free offer (step 4.2). Evidence:
+- [x] `terraform apply` creates workspaces, items and Azure sources on the trial; SQL database on
+  the free offer (step 4.2). Evidence: 2026-11-25 — cloud-run/terraform-apply.txt: first apply
+  created everything but failed on the six OneLake roles (provider 1.14.0 bug and the built-in
+  `DefaultReader`); the second, after #29 and the import, ended with 3 changed and a clean plan.
+  cloud-run/azure-resources.png, cloud-run/fabric-workspace-items.png,
+  cloud-run/azure-sql-free-offer.png (overage billing disabled). Sources loaded:
+  cloud-run/load-sources.txt, counts equal the generated files.
 - [x] Fabric CU quota allows an F2 on this subscription. Evidence: 2026-11-24 — usages API: Sweden
   Central 4 CU, West Europe 0.
 - [ ] F2 apply → destroy within one sitting, assigned to no workspace, start and end times (step 14).
@@ -108,8 +117,10 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 
 ### PLAN-U17 OneLake security and model RLS
 
-- [ ] Terraform creates `DefaultReader` (overridden by name, or imported) and `PhiReader`
-  (step 4.2). Evidence:
+- [x] Terraform creates `DefaultReader` (overridden by name, or imported) and `PhiReader`
+  (step 4.2). Evidence: 2026-11-25 — cloud-run/onelake-roles.png; `DefaultReader` imported and
+  narrowed to the 15 non-PHI tables (`terraform state show`), without `patient_record` and `staff`.
+  Until the tables exist the role page lists none.
 - [ ] ReadAll-only user reads `encounter`, is denied `patient_record` (Spark and OneLake API); a
   `PhiReader` member reads it (step 12). Evidence:
 - [ ] Gold reload reads `silver.patient_record` through the SQL endpoint in delegated mode
