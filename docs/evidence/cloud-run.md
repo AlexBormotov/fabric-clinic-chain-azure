@@ -48,7 +48,8 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   (step 11). Evidence:
 - [ ] **AC11 Capacity behaviour** — smoothing and throttling observed in the Capacity Metrics app
   (step 13). Evidence:
-- [ ] **AC12 Delivery** — Dev Git-synced (step 5.3); Actions deploy to Test and Prod green (step 6);
+- [ ] **AC12 Delivery** — Dev Git-synced (step 5.3; own branch `dev-workspace`, not
+  `main`: the sync would delete the Terraform items); Actions deploy to Test and Prod green (step 6);
   one deployment pipeline promotion (step 6); Terraform apply output (step 4.2); F2 created and
   destroyed (step 14). Evidence:
 - [ ] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no

@@ -332,13 +332,19 @@ tenant.
 
 - **Who:** owner (creates and types the token; it stays in Fabric).
 - **Do:** Tenant settings → **Users can synchronize workspace items with GitHub repositories** →
-  Enabled (without it the apply fails with `FeatureNotAvailable`). GitHub → Settings → Developer settings → **Fine-grained token**: only this repository,
-  Contents read and write, expiry 7 days. Fabric → Manage connections → **New** → GitHub - Source
+  Enabled (without it the apply fails with `FeatureNotAvailable`). GitHub → Settings → Developer
+  settings → **Fine-grained token**: only this repository, Contents read and write, expiry 7 days.
+  The branch `dev-workspace` must exist, with a folder `fabric-dev/` that holds no items. Fabric → Manage connections → **New** → GitHub - Source
   control → paste the token. Put its connection ID in `git_connection_id` in `terraform.tfvars`, then:
   ```sh
-  terraform apply      # binds clinic-chain-dev to main, folder fabric/
+  terraform apply      # binds clinic-chain-dev to dev-workspace, folder fabric-dev/; Fabric commits the items there
   ```
-- **Expect:** `clinic-chain-dev` → Source control shows "synced" with the latest commit of `main`.
+  Then copy `nb_quality` from `fabric/` on `main` into `fabric-dev/` on the branch, and in Fabric
+  **Source control** → **Updates** → **Update all**. First read `git/status` through the API: the only
+  remote change must be `nb_quality` Added. Never bind Dev to `fabric/` on `main`: the update deletes the
+  items Terraform owns.
+- **Expect:** `clinic-chain-dev` → Source control shows "synced" with the latest commit of
+  `dev-workspace`.
 - **Evidence:** `dev-git-integration.png`.
 - **Cost / time:** $0 / 15 min. The token expires by itself; delete it in step 16 anyway.
 

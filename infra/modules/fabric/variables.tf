@@ -26,13 +26,13 @@ variable "github_repository" {
 variable "git_branch" {
   description = "Branch the Dev workspace follows."
   type        = string
-  default     = "main"
+  default     = "dev-workspace"
 }
 
 variable "git_directory" {
-  description = "Repository folder holding the Fabric items."
+  description = "Folder on that branch that holds the Dev workspace items."
   type        = string
-  default     = "/fabric"
+  default     = "/fabric-dev"
 }
 
 variable "tenant_id" {
