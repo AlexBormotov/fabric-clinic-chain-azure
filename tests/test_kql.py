@@ -129,7 +129,7 @@ def test_tables_follow_the_contracts():
 
 def test_functions_reference_only_defined_objects():
     known_tables, known_functions = set(tables(SCRIPT)), functions(SCRIPT)
-    builtins = {"ingestion_time", "count"}
+    builtins = {"ingestion_time", "now", "count"}
     for name, text in known_functions.items():
         calls = set(re.findall(r"(\w+)\(\)", text)) - builtins
         assert calls <= set(known_functions) - {name}, (name, calls)
