@@ -60,6 +60,6 @@ Do not run `uv`/`pytest` on the Windows host for anything that must match CI.
 - `make deploy ENVIRONMENT=Test|Prod` — `fabric-cicd` deploy of `fabric/` with `fabric/parameter.yml`;
   run by `.github/workflows/deploy.yml` (manual dispatch, GitHub OIDC, no secret); never run it
   from a session without the owner's go-ahead (cloud). `make republish ENVIRONMENT=…` — Dataflow
-  Gen2 apply-changes as the owner (device code; service principals are rejected). ADR 0004
+  Gen2 apply-changes as the owner, in the infra container (its `az login`; service principals are rejected). ADR 0004
 - one test: `docker compose run --rm dev uv run pytest tests/test_smoke.py::test_python_matches_fabric_runtime`
 - after changing dependencies in `pyproject.toml`: `docker compose run --rm dev uv lock`

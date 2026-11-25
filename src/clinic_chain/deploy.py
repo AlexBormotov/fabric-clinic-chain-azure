@@ -3,8 +3,10 @@
 Identity:
 - in GitHub Actions, the deployer service principal through GitHub OIDC (a federated credential,
   no client secret): each Entra token is exchanged for a fresh GitHub ID token;
-- `--user`, the owner through the device code flow. Republishing a dataflow needs it: the Fabric
-  "apply changes" job does not accept service principals (Microsoft Learn, read 2026-10-28).
+- `--user`, the owner through the Azure CLI login of the infra container. Republishing a dataflow
+  needs it: the Fabric "apply changes" job does not accept service principals (Microsoft Learn,
+  read 2026-10-28). Not the device code flow: security defaults block it in tenants created since
+  2026-07-01 (Microsoft Learn, read 2026-11-25).
 """
 
 import json
@@ -17,7 +19,7 @@ from email.message import Message
 from pathlib import Path
 
 from azure.core.credentials import TokenCredential
-from azure.identity import ClientAssertionCredential, DeviceCodeCredential
+from azure.identity import AzureCliCredential, ClientAssertionCredential
 
 ENVIRONMENTS = ("Test", "Prod")
 
@@ -75,7 +77,9 @@ def github_oidc_credential(tenant_id: str, client_id: str) -> TokenCredential:
 
 def credential(user: bool) -> TokenCredential:
     if user:
-        return DeviceCodeCredential(tenant_id=os.environ.get("AZURE_TENANT_ID") or None)
+        return AzureCliCredential(
+            tenant_id=os.environ.get("AZURE_TENANT_ID") or "", process_timeout=60
+        )
     return github_oidc_credential(required("AZURE_TENANT_ID"), required("AZURE_CLIENT_ID"))
 
 

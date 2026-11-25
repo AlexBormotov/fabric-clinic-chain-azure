@@ -86,7 +86,7 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 - [ ] Pipeline runs of items owned by the service principal succeed when the owner starts them
   (step 7.1). Evidence:
 - [ ] Dataflow SharePoint connection bound and destination set by hand; `make republish` works
-  with device code (step 6). Evidence:
+  with the owner's `az login` (step 6). Evidence:
 
 ### PLAN-U12 Eventhouse model
 

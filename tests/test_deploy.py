@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from azure.identity import AzureCliCredential
 from jsonpath_ng.ext import parse
 
 from clinic_chain import deploy
@@ -211,3 +212,8 @@ def test_deploy_workflow_is_manual_and_uses_no_secret():
     assert workflow["permissions"] == {"contents": "read"}
     environments = {job["environment"] for job in workflow["jobs"].values()}
     assert environments == set(ENVIRONMENTS)
+
+
+def test_the_owner_signs_in_with_the_cli_login(monkeypatch):
+    monkeypatch.delenv("AZURE_TENANT_ID", raising=False)
+    assert isinstance(deploy.credential(user=True), AzureCliCredential)

@@ -303,9 +303,9 @@ exists anywhere. One-time owner setup, after `terraform apply` (U18):
 After a deploy that changed `df_sharepoint`, the dataflow needs an "apply changes" job. Fabric
 does not accept a service principal for that job. Run it yourself:
 
-1. Set `FABRIC_WORKSPACE_ID` in your shell, or in the git-ignored compose environment file.
-2. Run `make republish ENVIRONMENT=Test`.
-3. Sign in with the device code it prints.
+1. Sign in with `docker compose run --rm --service-ports login` (`infra/README.md`).
+2. Open the infra container: `docker compose run --rm -w /workspace infra`.
+3. Run `FABRIC_WORKSPACE_ID=<test id> make republish ENVIRONMENT=Test`.
 
 ## PHI security
 
