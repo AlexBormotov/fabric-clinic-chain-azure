@@ -107,7 +107,7 @@ def test_notebook_installs_the_locked_soda_versions():
     deps = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["dependencies"]
     pinned = {d for d in deps if d.startswith("soda-")}
     source = (ROOT / "fabric" / "nb_quality.Notebook" / "notebook-content.py").read_text()
-    [install] = re.findall(r"^# MAGIC %pip install (.+)$", source, re.M)
+    [install] = re.findall(r'run_line_magic\("pip", "install (.+)"\)', source)
     assert set(install.split()) == pinned == {"soda-core==4.29.0", "soda-sparkdf==4.29.0"}
 
 

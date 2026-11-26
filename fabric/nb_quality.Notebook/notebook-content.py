@@ -29,7 +29,12 @@
 
 # CELL ********************
 
-# MAGIC %pip install soda-core==4.29.0 soda-sparkdf==4.29.0
+# A call, not a `%pip` line: Fabric's Git import doubled that line into one invalid requirement
+# ("soda-sparkdf==4.29.0%pip"). Outside Fabric there is no IPython and Soda comes from uv.
+try:
+    get_ipython().run_line_magic("pip", "install soda-core==4.29.0 soda-sparkdf==4.29.0")  # noqa: F821
+except NameError:
+    pass
 
 # METADATA ********************
 
