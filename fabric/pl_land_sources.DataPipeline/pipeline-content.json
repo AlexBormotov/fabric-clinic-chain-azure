@@ -372,13 +372,7 @@
           "dataflowId": "00000000-0000-0000-0000-000000000000",
           "workspaceId": "00000000-0000-0000-0000-000000000000",
           "notifyOption": "NoNotification",
-          "dataflowType": "DataflowFabric",
-          "parameters": {
-            "run_id": {
-              "value": "@pipeline().RunId",
-              "type": "string"
-            }
-          }
+          "dataflowType": "DataflowFabric"
         }
       },
       {

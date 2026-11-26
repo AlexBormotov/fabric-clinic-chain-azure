@@ -1,8 +1,9 @@
 section Section1;
 
-// Parameters: the SharePoint site is set per environment by parameter.yml (U19). run_id is passed by
-// the pipeline but unused: the file destination is the fixed folder landing/sharepoint/, overwritten
-// on each refresh (Dataflow Gen2 file destinations take no folder parameter).
+// Parameters: the SharePoint site is set per environment by parameter.yml (U19). run_id is unused and
+// not passed by the pipeline (a refresh with parameters needs public parameters enabled): the file
+// destination is the fixed folder landing/sharepoint/, overwritten on each refresh (Dataflow Gen2
+// file destinations take no folder parameter).
 shared site_url = "https://example.sharepoint.com/sites/clinic-chain" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true];
 
 shared run_id = "manual" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true];
