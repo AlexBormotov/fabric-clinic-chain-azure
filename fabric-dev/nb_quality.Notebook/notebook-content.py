@@ -23,13 +23,12 @@
 # registered as a global temp view and checked as dataset `silver/global_temp/<table>`; nothing is
 # written. Any check that does not pass, or a contract that does not evaluate, fails the run.
 # Why Soda runs this way on Runtime 2.0: `docs/adr/0003-soda-on-runtime-2.md`.
-#
-# Locally the same file is imported by `scripts/quality.py` and the tests; the install cell and the
+# # Locally the same file is imported by `scripts/quality.py` and the tests; the install cell and the
 # last cell run only in Fabric. The pipeline enables the install with `_inlineInstallationEnabled`.
 
 # CELL ********************
 
-# MAGIC %pip install soda-core==4.29.0 soda-sparkdf==4.29.0
+%pip install soda-core==4.29.0 soda-sparkdf==4.29.0%pip install soda-core==4.29.0 soda-sparkdf==4.29.0
 
 # METADATA ********************
 
