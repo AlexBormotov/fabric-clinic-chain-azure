@@ -52,9 +52,9 @@ variable "git_connection_id" {
 }
 
 variable "github_owner" {
-  description = "GitHub owner of the repository connected to the Dev workspace."
+  description = "GitHub owner of the repository connected to the Dev workspace, lowercase as the Fabric API returns it (a mixed-case value makes the provider report an inconsistent result)."
   type        = string
-  default     = "AlexBormotov"
+  default     = "alexbormotov"
 }
 
 variable "github_repository" {
