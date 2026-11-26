@@ -357,8 +357,12 @@ tenant.
   gh run watch
   ```
   Then, once, in the Test workspace (the definition API cannot set these):
-  - `df_sharepoint` → **Manage connections**: bind the SharePoint source with OAuth; check that the
-    destination is `lh_bronze` Files; **Save**.
+  - `lh_bronze` → Files: create the folder `landing/sharepoint/` (**New subfolder** twice). The
+    dataflow's file destination (in Git) writes `beds.csv`, `staff.csv`, `roster.csv` there and
+    needs the folder to exist.
+  - `df_sharepoint` → **…** → **Settings** → **Take over** (the deployer owns it, so it opens
+    read-only). Then **Manage connections**: bind the SharePoint source and the Lakehouse
+    destination with your organizational account, privacy level Organizational; **Save**.
   - Apply the dataflow changes, in the infra shell:
     ```sh
     cd /workspace && FABRIC_WORKSPACE_ID=<test id> make republish ENVIRONMENT=Test

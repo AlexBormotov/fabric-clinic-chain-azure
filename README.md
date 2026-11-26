@@ -94,8 +94,9 @@ Loading is idempotent. `make test-stand` checks that every table and container h
 Fabric items live in [`fabric/`](fabric/) in Fabric's Git format:
 
 - `pl_land_sources` (Data Pipeline) copies every batch source unchanged into Lakehouse Files
-  `landing/<system>/<run id>/`, refreshes `df_sharepoint` (Dataflow Gen2: workbooks to CSV), then
-  runs `nb_bronze`.
+  `landing/<system>/<run id>/`, refreshes `df_sharepoint` (Dataflow Gen2: workbooks to CSV in
+  `landing/sharepoint/`, overwritten on each refresh: file destinations take no folder parameter),
+  then runs `nb_bronze`.
 - `nb_bronze` (PySpark notebook) writes one Delta table per source: source columns as landed plus
   `_run_id`, `_source_file` and `_ingested_at`. FHIR stays one raw JSON row per bundle file.
 

@@ -2,6 +2,7 @@
 tests compare the Bronze built by `make bronze` with the stand."""
 
 import json
+import re
 from decimal import Decimal
 from pathlib import Path
 
@@ -32,7 +33,7 @@ def land_fixture(landing: Path, run_id: str) -> dict[str, int]:
     """One tiny file per source; returns the expected rows per Bronze table."""
     expected = {}
     for table, (system, path, fmt) in NB.SOURCES.items():
-        folder = landing / system / run_id
+        folder = landing / system if system == "sharepoint" else landing / system / run_id
         folder.mkdir(parents=True, exist_ok=True)
         if fmt == "parquet":
             rows = [{"id": "a", "amount": Decimal("1.50")}, {"id": "b", "amount": None}]
@@ -84,6 +85,10 @@ def test_csv_values_survive_quoting(session, bronze):
     assert [r["name"] for r in rows] == ["Lee, Ann", 'say "hi"', "two\nlines", None]
 
 
+def test_sharepoint_csv_drops_the_byte_order_mark(session, bronze):
+    assert read(session, bronze[0] / "sharepoint_beds").columns[:2] == ["id", "name"]
+
+
 def test_parquet_keeps_types_and_fhir_keeps_raw_json(session, bronze):
     claim = read(session, bronze[0] / "billing_claim").orderBy("id").collect()
     assert [r["amount"] for r in claim] == [Decimal("1.50"), None]
@@ -129,15 +134,18 @@ def test_pipeline_lands_every_source_then_runs_the_notebook():
     assert (ROOT / "fabric" / "nb_bronze.Notebook" / "notebook-content.py").exists()
 
 
-def test_dataflow_loads_every_sharepoint_table():
+def test_dataflow_writes_every_sharepoint_table_to_its_landing_file():
     item = ROOT / "fabric" / "df_sharepoint.Dataflow"
     meta = json.loads((item / "queryMetadata.json").read_text())["queriesMetadata"]
-    loaded = {name for name, q in meta.items() if q["loadEnabled"]}
+    mashup = (item / "mashup.pq").read_text()
+    destination = r"shared (\w+)_DataDestination = .*?\[Name = \"(\w+\.csv)\"\]"
+    files = dict(re.findall(destination, mashup, re.S))
     sharepoint = {t.removeprefix("sharepoint_") for t in NB.SOURCES if t.startswith("sharepoint_")}
-    assert (
-        loaded == sharepoint == {n.partition(".")[2] for n in CONTRACTS if n[:11] == "sharepoint."}
-    )
-    assert all(f"shared {name} =" in (item / "mashup.pq").read_text() for name in meta)
+    contract = {n.partition(".")[2] for n in CONTRACTS if n[:11] == "sharepoint."}
+    assert set(files) == sharepoint == contract
+    assert all(files[t] == NB.SOURCES[f"sharepoint_{t}"][1] for t in files)
+    assert mashup.count('[Name = "landing"]') == mashup.count('[Name = "sharepoint"]') == len(files)
+    assert all(f"shared {name} =" in mashup for name in meta)
 
 
 # --- full population: needs `make up` and `make bronze` -----------------------------------

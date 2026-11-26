@@ -43,7 +43,8 @@ tables_root = "Tables"
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
-# Bronze table -> (system folder under landing/<system>/<run_id>/, path inside it, format)
+# Bronze table -> (system folder under landing/<system>/<run_id>/, path inside it, format).
+# SharePoint has no run folder: the Dataflow's file destination is a fixed folder it overwrites.
 SOURCES = {
     "billing_patient_account": ("billing", "patient_account.parquet", "parquet"),
     "billing_claim": ("billing", "claim.parquet", "parquet"),
@@ -62,7 +63,8 @@ SOURCES = {
 
 def read_source(spark: SparkSession, landing_root: str, run_id: str, table: str) -> DataFrame:
     system, path, fmt = SOURCES[table]
-    location = f"{landing_root}/{system}/{run_id}/{path}"
+    folder = f"{landing_root}/{system}"
+    location = f"{folder}/{path}" if system == "sharepoint" else f"{folder}/{run_id}/{path}"
     if fmt == "parquet":
         df = spark.read.parquet(location)
     elif fmt == "csv":
@@ -73,6 +75,8 @@ def read_source(spark: SparkSession, landing_root: str, run_id: str, table: str)
             .option("escape", '"')
             .csv(location)
         )
+        # The Dataflow writes UTF-8 with a byte order mark; keep it out of the first column name.
+        df = df.toDF(*[c.lstrip("\ufeff") for c in df.columns])
     else:
         df = (
             spark.read.option("recursiveFileLookup", True)
