@@ -118,7 +118,7 @@ def test_pipeline_runs_quality_after_silver_with_inline_install():
     ]
     [notebook] = [a for a in activities if a["name"] == "run_nb_quality"]
     assert notebook["type"] == "TridentNotebook"
-    assert [d["activity"] for d in notebook["dependsOn"]] == ["run_nb_silver"]
+    assert [d["activity"] for d in notebook["dependsOn"]] == ["run_nb_bed_history"]
     parameters = notebook["typeProperties"]["parameters"]
     assert parameters["run_id"]["value"] == "@pipeline().RunId"
     assert parameters["_inlineInstallationEnabled"] == {"value": True, "type": "bool"}

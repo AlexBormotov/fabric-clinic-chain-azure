@@ -502,7 +502,7 @@
         },
         "dependsOn": [
           {
-            "activity": "run_nb_silver",
+            "activity": "run_nb_mpi",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -529,7 +529,7 @@
         },
         "dependsOn": [
           {
-            "activity": "run_nb_silver",
+            "activity": "run_nb_bed_history",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -560,7 +560,7 @@
         },
         "dependsOn": [
           {
-            "activity": "run_nb_silver",
+            "activity": "run_nb_quality",
             "dependencyConditions": [
               "Succeeded"
             ]

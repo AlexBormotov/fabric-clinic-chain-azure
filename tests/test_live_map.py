@@ -259,7 +259,7 @@ def test_pipeline_loads_beds_after_silver():
     activities = json.loads(item.read_text())["properties"]["activities"]
     [activity] = [a for a in activities if a["name"] == "run_nb_bed_reference"]
     assert activity["type"] == "TridentNotebook"
-    assert [d["activity"] for d in activity["dependsOn"]] == ["run_nb_silver"]
+    assert [d["activity"] for d in activity["dependsOn"]] == ["run_nb_quality"]
 
 
 # --- Kusto emulator ---------------------------------------------------------------------------
