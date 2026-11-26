@@ -1,7 +1,8 @@
 """Local stand-in for the pipeline's Copy activities and the SharePoint Dataflow.
 
 Copies every source of the U04 stand unchanged into `<lakehouse>/Files/landing/<system>/<run_id>/`:
-SQL tables as Parquet, blobs as they are, each SharePoint sheet as CSV.
+SQL tables as Parquet, blobs as they are. Each SharePoint sheet goes to `landing/sharepoint/` as CSV
+with a byte order mark, as the Dataflow's file destination writes it.
 """
 
 import csv
@@ -48,7 +49,7 @@ def land_sharepoint(sources: Path, specs: dict[str, dict], target: Path) -> None
             continue
         header, rows = contracts.read(sources, spec)
         kinds = [c["type"] for c in spec["columns"]]
-        with (target / f"{table}.csv").open("w", newline="", encoding="utf-8") as f:
+        with (target / f"{table}.csv").open("w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f, lineterminator="\n")
             writer.writerow(header)
             writer.writerows([_cell(v, k) for v, k in zip(row, kinds, strict=True)] for row in rows)
@@ -58,4 +59,4 @@ def land(sources: Path, specs: dict[str, dict], landing: Path, run_id: str) -> N
     land_sql(landing / "billing" / run_id)
     for container in ("lab", "adt", "fhir"):
         land_blobs(container, landing / container / run_id)
-    land_sharepoint(sources, specs, landing / "sharepoint" / run_id)
+    land_sharepoint(sources, specs, landing / "sharepoint")

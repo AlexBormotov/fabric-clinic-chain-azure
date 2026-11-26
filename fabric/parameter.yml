@@ -53,6 +53,21 @@ find_replace:
     replace_value:
       Test: $ENV:SHAREPOINT_SITE_URL
       Prod: $ENV:SHAREPOINT_SITE_URL
+  # Dataflow file destinations: the target workspace and its lh_bronze (every match is replaced).
+  - find_value: 'workspaceId = "(0{8}-0{4}-0{4}-0{4}-0{12})"'
+    is_regex: "true"
+    item_type: Dataflow
+    item_name: df_sharepoint
+    replace_value:
+      Test: $workspace.$id
+      Prod: $workspace.$id
+  - find_value: 'lakehouseId = "(0{8}-0{4}-0{4}-0{4}-0{12})"'
+    is_regex: "true"
+    item_type: Dataflow
+    item_name: df_sharepoint
+    replace_value:
+      Test: $items.Lakehouse.lh_bronze.$id
+      Prod: $items.Lakehouse.lh_bronze.$id
 
   # Semantic model (U10): Direct Lake on OneLake over the Gold warehouse, <workspace>/<item>.
   # The workspace rule runs first; the warehouse rule then matches any GUID in that position.

@@ -25,19 +25,55 @@
       "queryId": "620891ce-c963-500b-9ad6-7e25e1854db2",
       "queryName": "beds",
       "isHidden": false,
-      "loadEnabled": true
+      "loadEnabled": false
     },
     "staff": {
       "queryId": "a19608ca-b769-5d4e-b4b8-081cf2902e0a",
       "queryName": "staff",
       "isHidden": false,
-      "loadEnabled": true
+      "loadEnabled": false
     },
     "roster": {
       "queryId": "a3b9fb36-0d7c-5657-a2bd-2f9d1ab9fb01",
       "queryName": "roster",
       "isHidden": false,
-      "loadEnabled": true
+      "loadEnabled": false
+    },
+    "beds_DataDestination": {
+      "queryId": "08e46693-9100-458d-a75e-2f69061324cd",
+      "queryName": "beds_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "beds_DataDestinationTransform": {
+      "queryId": "a7c11eeb-305d-4e44-b69c-7779779338de",
+      "queryName": "beds_DataDestinationTransform",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staff_DataDestination": {
+      "queryId": "db0b5faa-663a-4705-a32f-29b1f83b0690",
+      "queryName": "staff_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staff_DataDestinationTransform": {
+      "queryId": "f8b3541f-e82c-4c3a-8ae8-dcddece3bb9b",
+      "queryName": "staff_DataDestinationTransform",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "roster_DataDestination": {
+      "queryId": "2efc915e-3d53-4cca-ab30-2c610be849b1",
+      "queryName": "roster_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "roster_DataDestinationTransform": {
+      "queryId": "9d026580-c718-437c-9edd-e1cdf82ed2a5",
+      "queryName": "roster_DataDestinationTransform",
+      "isHidden": true,
+      "loadEnabled": false
     }
   },
   "parametric": true
