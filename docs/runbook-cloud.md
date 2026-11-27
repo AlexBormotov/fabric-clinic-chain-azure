@@ -371,6 +371,9 @@ tenant.
   - `act_ward_occupancy` → rule "Ward occupancy above 90%": the action is a **Teams message** to
     `ALERT_TEAMS_RECIPIENT` (in Git); check the recipient is the account you read Teams with. If the
     deploy rejected the Reflex, use the recipe in README "Live bed map and alert", step 2.
+  - `sm_clinic_chain`: the deployer owns it, so its connection settings are read-only. Take it over
+    (**Settings** → **Take over**, or `POST …/datasets/{id}/Default.TakeOver` with your token), then
+    bind the cloud connection (step 7.3). Repeat after each deploy.
 - **Expect:** both jobs green; Test and Prod hold every item of `fabric/`; the OIDC sign-in works
   without a secret; `$items` resolved the Terraform lakehouses (pipeline activities show
   `lh_bronze`, not a zero GUID).
@@ -405,11 +408,11 @@ tenant.
   `30_access.sql`, `30_security.sql`, then `EXEC gold.reload;`, then
   `sql/fabric/security_members.sql`, then your git-ignored `sql/fabric/user_clinic.sql` (copy of the
   example with `clinic.boston@<tenant>.onmicrosoft.com` → `boston`).
-  Row counts:
+  Or let the agent run the same files over TDS with your `az login` token (how it was done on
+  2026-11-27). Row counts: `sys.partitions.rows` is NULL in Fabric Warehouse, so count each table
+  with `COUNT_BIG(*)`:
   ```sql
-  SELECT t.name, SUM(p.rows) AS row_count FROM sys.tables AS t
-  JOIN sys.partitions AS p ON t.object_id = p.object_id
-  WHERE SCHEMA_NAME(t.schema_id) = 'gold' GROUP BY t.name ORDER BY t.name;
+  SELECT 'fact_stay' AS name, COUNT_BIG(*) AS row_count FROM gold.fact_stay;  -- one line per table
   SELECT * FROM gold.metric_summary;
   SELECT * FROM gold.metric_payer_mix;
   ```
@@ -425,7 +428,11 @@ tenant.
 - **Do:** Test → `sm_clinic_chain` → Settings → **Gateway and cloud connections**: bind a cloud
   connection with a fixed identity, SSO off (workspace identity; if it is not offered, OAuth 2.0 as
   yourself, and note the deviation from ADR 0005). Give that identity Read and ReadAll on `wh_gold`.
-  **Refresh**. Open `rpt_clinic_chain`.
+  **Refresh**. Open `rpt_clinic_chain`. Take the model over first (step 6). Workspace identity
+  needs the workspace to have one (Workspace settings → **Workspace identity**); without it every
+  query fails with `Premium_ASWL_Error`. A connection's authentication cannot be edited: create a
+  new connection instead. Skipping this step works for workspace admins (SSO) but every other report
+  user gets `Missing_References`.
 - **Expect:** three pages (occupancy, quality, economics) render; numbers match
   `gold.metric_summary` (chain scope).
 - **Evidence:** `report-occupancy.png`, `report-quality.png`, `report-economics.png`.
@@ -442,6 +449,10 @@ End of sitting 1 is fine here: nothing billable exists except Blob cents. Do not
   **Eventhouse**, mode **Direct ingestion**, `eh_beds` / `kqldb_beds`, table `adt_raw`, format JSON,
   mapping `adt_raw_json` (Advanced) → **Publish**. Custom endpoint → **Event Hub** → **SAS key
   authentication** → copy **Connection string-primary key**.
+  Notes from 2026-11-27: the wizard publishes the custom endpoint first and the Eventhouse
+  destination is configured after **Publish**. The table, JSON format and the existing mapping are
+  offered only once sample data has arrived: run `make replay ARGS='--limit 20'` with the key, then
+  configure the destination. The keys are in **Live** view → source node → **Details**.
 - **Cost / time:** $0 / 15 min.
 
 ### 8.2 Replay — the connection string stays in your terminal
@@ -456,7 +467,7 @@ End of sitting 1 is fine here: nothing billable exists except Blob cents. Do not
   Then in `kqldb_beds` (KQL queryset):
   ```kusto
   adt_raw | count;
-  adt_event | summarize sends = count(), events = dcount(event_id), first = min(ingested_at), last = max(ingested_at);
+  adt_event | summarize sends = count(), events = count_distinct(event_id), first_at = min(ingested_at), last_at = max(ingested_at);
   ward_occupancy() | order by occupancy desc
   ```
 - **Expect:** the printed summary (sent, late and duplicate shares, rate 10–50/s); `adt_raw` count =
