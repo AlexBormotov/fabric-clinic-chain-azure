@@ -362,14 +362,15 @@ tenant.
     needs the folder to exist.
   - `df_sharepoint` → **…** → **Settings** → **Take over** (the deployer owns it, so it opens
     read-only). Then **Manage connections**: bind the SharePoint source and the Lakehouse
-    destination with your organizational account, privacy level Organizational; **Save**.
-  - Apply the dataflow changes, in the infra shell:
-    ```sh
-    cd /workspace && FABRIC_WORKSPACE_ID=<test id> make republish ENVIRONMENT=Test
-    ```
-  - `act_ward_occupancy` → rule "Ward occupancy above 90%" → action **Teams** → **Channel post** →
-    team `clinic-chain`, channel `bed-alerts` → Save. If the deploy rejected the Reflex, use the
-    recipe in README "Live bed map and alert", step 2.
+    destination with your organizational account, privacy level Organizational; **Save**. Every
+    later deploy drops these bindings (`make republish` then fails with "Evaluation is canceled"):
+    open the dataflow again and **Save**, which re-binds, publishes and refreshes.
+  - `pl_land_sources`: save it once as yourself (open, nudge an activity, **Save**; or the agent
+    re-posts its definition with your `az login`). Otherwise its dataflow activity refreshes as the
+    deploying service principal and fails with `SPNBasedRefreshNotAllowed`. Repeat after each deploy.
+  - `act_ward_occupancy` → rule "Ward occupancy above 90%": the action is a **Teams message** to
+    `ALERT_TEAMS_RECIPIENT` (in Git); check the recipient is the account you read Teams with. If the
+    deploy rejected the Reflex, use the recipe in README "Live bed map and alert", step 2.
 - **Expect:** both jobs green; Test and Prod hold every item of `fabric/`; the OIDC sign-in works
   without a secret; `$items` resolved the Terraform lakehouses (pipeline activities show
   `lh_bronze`, not a zero GUID).
@@ -495,7 +496,7 @@ End of sitting 1 is fine here: nothing billable exists except Blob cents. Do not
   Wait up to 2 minutes (the rule polls every 60 s). Then restore the beds: Test → `nb_bed_reference`
   → **Run all**. Then `act_ward_occupancy` → **Stop** the rule (polling keeps the Eventhouse
   active).
-- **Expect:** a post in Teams `clinic-chain` / `bed-alerts` naming the ward; the Activator history
+- **Expect:** a Teams chat message from Activator naming the ward; the Activator history
   shows one firing on the crossing.
 - **Evidence:** `teams-alert.png`, `activator-history.png`.
 - **Cost / time:** $0 / 20 min.

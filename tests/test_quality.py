@@ -107,7 +107,7 @@ def test_notebook_installs_the_locked_soda_versions():
     deps = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["dependencies"]
     pinned = {d for d in deps if d.startswith("soda-")}
     source = (ROOT / "fabric" / "nb_quality.Notebook" / "notebook-content.py").read_text()
-    [install] = re.findall(r"^# MAGIC %pip install (.+)$", source, re.M)
+    [install] = re.findall(r'run_line_magic\("pip", "install (.+)"\)', source)
     assert set(install.split()) == pinned == {"soda-core==4.29.0", "soda-sparkdf==4.29.0"}
 
 
@@ -118,7 +118,7 @@ def test_pipeline_runs_quality_after_silver_with_inline_install():
     ]
     [notebook] = [a for a in activities if a["name"] == "run_nb_quality"]
     assert notebook["type"] == "TridentNotebook"
-    assert [d["activity"] for d in notebook["dependsOn"]] == ["run_nb_silver"]
+    assert [d["activity"] for d in notebook["dependsOn"]] == ["run_nb_bed_history"]
     parameters = notebook["typeProperties"]["parameters"]
     assert parameters["run_id"]["value"] == "@pipeline().RunId"
     assert parameters["_inlineInstallationEnabled"] == {"value": True, "type": "bool"}

@@ -116,7 +116,9 @@ def test_pipeline_runs_bed_history_after_silver():
         "activities"
     ]
     [notebook] = [a for a in activities if a["name"] == "run_nb_bed_history"]
-    assert [d["activity"] for d in notebook["dependsOn"]] == ["run_nb_silver"]
+    # The notebooks after Silver run in a chain: a trial capacity rejects four concurrent Spark
+    # sessions (HTTP 430, TooManyRequestsForCapacity).
+    assert [d["activity"] for d in notebook["dependsOn"]] == ["run_nb_mpi"]
     assert notebook["typeProperties"]["parameters"]["run_id"]["value"] == "@pipeline().RunId"
 
 
