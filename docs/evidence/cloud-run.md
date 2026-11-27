@@ -128,7 +128,13 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   (step 7.2). Evidence: 2026-11-27 — `EXEC gold.reload` ran with the owner's token; dim_patient 15330 rows.
 - [x] `clinic.boston` sees only Boston; `readmission_30d_rate` per clinic equals
   `gold.metric_summary` (step 12). Evidence: 2026-11-27 — cloud-run/phi-rls.md, cloud-run/rls-clinic-boston.png: one row, boston 0.10190664036817883 = `gold.metric_summary`.
-- [ ] Redeploying the model keeps the `clinic` role member (step 12). Evidence:
+- [ ] Redeploying the model keeps the `clinic` role member (step 12). Evidence: 2026-11-27 — no.
+  After the Test redeploy (run 46055987161) the owner's DAX still ran but `clinic.boston` failed
+  (AnalysisServicesErrorCode 3242524690); the role had no member. Re-adding
+  `clinic_chain_clinic_users` triggered a refresh that bound the model to the older
+  workspace-identity connection with the same OneLake path (`Premium_ASWL_Error`). Re-binding
+  `cn_sm_clinic_chain_one_lake` (`POST …/semanticModels/{id}/bindConnection`) restored both
+  results (cloud-run/phi-rls.md, cloud-run/rls-role-readded.png).
 - [x] ADR 0005 experiment outcome, and the fixed identity used (step 7.3, 11). Evidence: 2026-11-27 — fallback observed (cloud-run/fallback.md). Fixed identity: OAuth 2.0 as the owner, SSO off (connection `cn_sm_clinic_chain_one_lake`), because the workspace has no workspace identity (`Premium_ASWL_Error`).
 
 ### PLAN-U10 Semantic model

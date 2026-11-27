@@ -373,7 +373,10 @@ tenant.
     deploy rejected the Reflex, use the recipe in README "Live bed map and alert", step 2.
   - `sm_clinic_chain`: the deployer owns it, so its connection settings are read-only. Take it over
     (**Settings** → **Take over**, or `POST …/datasets/{id}/Default.TakeOver` with your token), then
-    bind the cloud connection (step 7.3). Repeat after each deploy.
+    bind the cloud connection (step 7.3). Repeat after each deploy. A deploy also removes the
+    `clinic` role member: add `clinic_chain_clinic_users` again (**Security**). That save
+    refreshes the model and may bind any connection with the same OneLake path, so check the
+    binding afterwards; delete unused OneLake connections to avoid it.
 - **Expect:** both jobs green; Test and Prod hold every item of `fabric/`; the OIDC sign-in works
   without a secret; `$items` resolved the Terraform lakehouses (pipeline activities show
   `lh_bronze`, not a zero GUID).

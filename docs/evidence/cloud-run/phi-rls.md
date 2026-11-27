@@ -53,3 +53,20 @@ After the fix:
     0.10197044334975369;
   - as `clinic.boston` (`impersonatedUserName`): one row, boston 0.10190664036817883, equal to
     `gold.metric_summary`.
+
+## 12.5 Redeploy and the role member
+
+The Prod deploy run 46055987161 also redeployed Test. Afterwards:
+
+1. The owner's DAX still returned three clinics; the `clinic.boston` query failed with
+   AnalysisServicesErrorCode 3242524690. The deployed role has no member (ADR 0005 assigns it
+   after deploy), so the redeploy removed `clinic_chain_clinic_users`.
+2. The owner re-added the group in **Security** (`rls-role-readded.png`). The save triggered a
+   refresh at 19:02 UTC that failed with `Premium_ASWL_Error`: the model was bound to
+   `cn_sm_clinic_chain_onelake`, an earlier workspace-identity connection with the same OneLake
+   path. Every query, the owner's included, then failed.
+3. `POST v1/workspaces/{ws}/semanticModels/{id}/bindConnection` to `cn_sm_clinic_chain_one_lake`
+   (OAuth 2.0) returned HTTP 200. Both DAX results above came back unchanged.
+
+Result: a redeploy does not keep the role member. After each deploy: take the model over, add the
+group to `clinic`, bind the OAuth 2.0 connection, in that order.
