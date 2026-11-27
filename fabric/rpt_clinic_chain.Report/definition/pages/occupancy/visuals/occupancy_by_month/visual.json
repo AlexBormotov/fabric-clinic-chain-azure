@@ -1,0 +1,97 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "occupancy_by_month",
+  "position": {
+    "x": 20,
+    "y": 170,
+    "z": 1,
+    "width": 1240,
+    "height": 530
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_date"
+                    }
+                  },
+                  "Property": "month_start"
+                }
+              },
+              "queryRef": "dim_date.month_start",
+              "nativeQueryRef": "month_start",
+              "displayName": "Month"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_bed_day"
+                    }
+                  },
+                  "Property": "occupancy_rate"
+                }
+              },
+              "queryRef": "fact_bed_day.occupancy_rate",
+              "nativeQueryRef": "occupancy_rate",
+              "displayName": "Bed occupancy"
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_clinic"
+                    }
+                  },
+                  "Property": "clinic_name"
+                }
+              },
+              "queryRef": "dim_clinic.clinic_name",
+              "nativeQueryRef": "clinic_name",
+              "displayName": "Clinic"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Bed occupancy by month and clinic'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

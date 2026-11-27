@@ -6,7 +6,7 @@
     "y": 20,
     "z": 0,
     "width": 280,
-    "height": 140
+    "height": 130
   },
   "visual": {
     "visualType": "card",
@@ -26,7 +26,8 @@
                 }
               },
               "queryRef": "fact_bed_day.occupancy_rate",
-              "nativeQueryRef": "occupancy_rate"
+              "nativeQueryRef": "occupancy_rate",
+              "displayName": "Bed occupancy"
             }
           ]
         }

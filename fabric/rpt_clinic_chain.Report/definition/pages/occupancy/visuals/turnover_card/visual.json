@@ -6,7 +6,7 @@
     "y": 20,
     "z": 0,
     "width": 280,
-    "height": 140
+    "height": 130
   },
   "visual": {
     "visualType": "card",
@@ -26,7 +26,8 @@
                 }
               },
               "queryRef": "fact_stay.bed_turnover_per_year",
-              "nativeQueryRef": "bed_turnover_per_year"
+              "nativeQueryRef": "bed_turnover_per_year",
+              "displayName": "Bed turnover per year"
             }
           ]
         }

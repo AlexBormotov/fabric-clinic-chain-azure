@@ -3,13 +3,13 @@
   "name": "payer_mix_by_payer",
   "position": {
     "x": 20,
-    "y": 190,
+    "y": 170,
     "z": 1,
-    "width": 880,
-    "height": 500
+    "width": 610,
+    "height": 530
   },
   "visual": {
-    "visualType": "clusteredColumnChart",
+    "visualType": "clusteredBarChart",
     "query": {
       "queryState": {
         "Category": {
@@ -26,7 +26,8 @@
                 }
               },
               "queryRef": "dim_payer.payer",
-              "nativeQueryRef": "payer"
+              "nativeQueryRef": "payer",
+              "displayName": "Payer"
             }
           ]
         },
@@ -44,11 +45,34 @@
                 }
               },
               "queryRef": "fact_claim.payer_mix",
-              "nativeQueryRef": "payer_mix"
+              "nativeQueryRef": "payer_mix",
+              "displayName": "Share of claims"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Share of claims by payer'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -1,15 +1,15 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
-  "name": "readmission_by_clinic",
+  "name": "readmission_by_month",
   "position": {
     "x": 20,
-    "y": 190,
+    "y": 170,
     "z": 1,
-    "width": 880,
-    "height": 500
+    "width": 610,
+    "height": 530
   },
   "visual": {
-    "visualType": "clusteredColumnChart",
+    "visualType": "lineChart",
     "query": {
       "queryState": {
         "Category": {
@@ -19,14 +19,15 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "dim_clinic"
+                      "Entity": "dim_date"
                     }
                   },
-                  "Property": "clinic_name"
+                  "Property": "month_start"
                 }
               },
-              "queryRef": "dim_clinic.clinic_name",
-              "nativeQueryRef": "clinic_name"
+              "queryRef": "dim_date.month_start",
+              "nativeQueryRef": "month_start",
+              "displayName": "Month"
             }
           ]
         },
@@ -44,11 +45,34 @@
                 }
               },
               "queryRef": "fact_stay.readmission_30d_rate",
-              "nativeQueryRef": "readmission_30d_rate"
+              "nativeQueryRef": "readmission_30d_rate",
+              "displayName": "30-day readmission rate"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'30-day readmission rate by month'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
