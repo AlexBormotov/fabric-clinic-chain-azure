@@ -58,7 +58,9 @@ session. Silver tables are Delta paths, not catalog tables.
 - **Failure.**
   - Any check outcome other than PASSED fails the run. So does a contract that errors or yields
     no checks.
-  - The notebook's run cell raises, so the pipeline activity fails. The activity has no retry.
+  - The notebook's run cell raises, so the pipeline activity fails. The activity retries once
+    after 60 s: on a trial capacity the previous notebook's session is often still held (HTTP
+    430). A failed check simply fails again.
 - **Telemetry.** Soda Core sends anonymous usage telemetry to `collect.soda.io` by default. The
   notebook sets `SODA_CORE_TELEMETRY_ENABLED=false` before the first Soda import.
 - **Import order.** Importing `soda_sparkdf` before `soda_core` logs a circular-import warning from

@@ -35,6 +35,13 @@ try:
     get_ipython().run_line_magic("pip", "install soda-core==4.29.0 soda-sparkdf==4.29.0")  # noqa: F821
 except NameError:
     pass
+else:
+    import sys
+
+    # The runtime has already imported its own older OpenTelemetry; drop it so Soda's import loads
+    # the version pip just installed (otherwise: ImportError on an OTLP exporter constant).
+    for name in [n for n in sys.modules if n == "opentelemetry" or n.startswith("opentelemetry.")]:
+        del sys.modules[name]
 
 # METADATA ********************
 
