@@ -6,7 +6,7 @@
     "y": 20,
     "z": 0,
     "width": 280,
-    "height": 140
+    "height": 130
   },
   "visual": {
     "visualType": "card",
@@ -26,7 +26,8 @@
                 }
               },
               "queryRef": "fact_ed_visit.ed_wait_median_minutes",
-              "nativeQueryRef": "ed_wait_median_minutes"
+              "nativeQueryRef": "ed_wait_median_minutes",
+              "displayName": "Median ED wait, minutes"
             }
           ]
         }

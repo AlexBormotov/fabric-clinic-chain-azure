@@ -6,7 +6,7 @@
     "y": 20,
     "z": 0,
     "width": 280,
-    "height": 140
+    "height": 130
   },
   "visual": {
     "visualType": "card",
@@ -26,7 +26,8 @@
                 }
               },
               "queryRef": "fact_claim.revenue_per_bed_per_year",
-              "nativeQueryRef": "revenue_per_bed_per_year"
+              "nativeQueryRef": "revenue_per_bed_per_year",
+              "displayName": "Revenue per bed per year"
             }
           ]
         }
