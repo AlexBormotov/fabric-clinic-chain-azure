@@ -20,12 +20,14 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   (screenshot kept off the public repository).
 - [x] **Budget alert** set at $5 (step 1.6). Evidence: 2026-11-25 — monthly $5 budget `5dollars` on
   the billing account, which covers the subscription (screenshot kept off the public repository).
-- [ ] **CI on `main`** green at the commit deployed (link to the run). Evidence:
+- [x] **CI on `main`** green at the commit deployed (link to the run). Evidence: 2026-11-28 — deploy run
+  46055987161 deployed `90a90c0`; CI run https://github.com/AlexBormotov/fabric-clinic-chain-azure/actions/runs/46054769023 on that commit: lint, test, synth,
+  stand, kql, secrets all green.
 
 ## Acceptance criteria (INT-001)
 
-- [ ] **AC1 Synthetic estate** — local seam: `make test-slow` / CI `synth` job on the deployed
-  commit. Evidence:
+- [x] **AC1 Synthetic estate** — local seam: `make test-slow` / CI `synth` job on the deployed
+  commit. Evidence: 2026-11-28 — `synth` green in CI run 46054769023 on `90a90c0`.
 - [x] **AC2 Batch path** — `pl_land_sources` run all green in Test (step 7.1); Silver
   reconciliation exported; Gold row counts equal the local `make gold` counts, every difference
   explained (step 7.2). Evidence: 2026-11-27 — `pl_land_sources` run `138960d8` Completed in 11 min after six fixes (#38, #39): owner re-save against `SPNBasedRefreshNotAllowed`, no dataflow parameters, notebooks chained against HTTP 430, `run_line_magic` install, retry 1, OpenTelemetry purge. cloud-run/gold-row-counts.csv (COUNT_BIG per table; fact_stay 6374, fact_bed_day 35120).
@@ -46,14 +48,29 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   without PHI columns (CI `test_model_has_no_phi_columns`). Evidence: 2026-11-27 — cloud-run/phi-rls.md: masks and CLS denial for `analyst`, clear values for `phi.reader`, Boston-only report for `clinic.boston`. The OneLake Spark check (step 12.3) was not run: the test users have no workspace on a capacity.
 - [x] **AC10 Direct Lake fallback** — DirectQuery shown in Performance Analyzer, cause recorded
   (step 11). Evidence: 2026-11-27 — cloud-run/fallback.md, cloud-run/fallback-perf-analyzer.png: a SQL RLS policy made a Direct Lake on SQL probe model fall back to DirectQuery.
-- [ ] **AC11 Capacity behaviour** — smoothing and throttling observed in the Capacity Metrics app
-  (step 13). Evidence:
-- [ ] **AC12 Delivery** — Dev Git-synced (step 5.3; own branch `dev-workspace`, not
+- [x] **AC11 Capacity behaviour** — smoothing and throttling observed in the Capacity Metrics app
+  (step 13). Evidence: 2026-11-28 — cloud-run/capacity.md; capacity-health.png, capacity-compute.png,
+  capacity-throttling.png, capacity-timepoint.png. Trial FTL4. Smoothing: the 24-hour background
+  smoothing gives a flat line at about 75%, peak 76.51%. Throttling: P95 interactive delay
+  74.97%, below the 100% limit; 0 throttled, 0 rejected. Each idle `eh_beds` uses 107,400 CU·s per
+  day (EventHouse UpTime).
+- [x] **AC12 Delivery** — Dev Git-synced (step 5.3; own branch `dev-workspace`, not
   `main`: the sync would delete the Terraform items); Actions deploy to Test and Prod green (step 6);
   one deployment pipeline promotion (step 6); Terraform apply output (step 4.2); F2 created and
-  destroyed (step 14). Evidence:
-- [ ] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no
-  cloud. Evidence:
+  destroyed (step 14). Evidence: 2026-11-28 — Actions deploy to Test and Prod green (run
+  46055987161; OIDC, `$items` below). Promotion: `clinic-chain-promotion` Dev → Test of
+  `nb_quality`, deploy operation `740b4207…` Succeeded at 14:18 UTC
+  (cloud-run/deployment-pipeline-promotion.png). First it failed with `TargetArtifactNameConflict`:
+  a deployment pipeline does not pair items fabric-cicd created with the same name, and the Test
+  notebook could not be deleted while `pl_land_sources` referenced it. Renaming it to
+  `nb_quality_cicd` let the promotion create a paired `nb_quality`; the Test redeploy (run
+  46153994863) then updated that item by name, re-pointed the pipeline and unpublished
+  `nb_quality_cicd`. Terraform apply: cloud-run/terraform-apply.txt. Dev Git sync: `clinic-chain-dev` connected to
+  branch `dev-workspace`, folder `/fabric-dev`, head `9386e68`, last sync 2026-11-26 17:13 UTC
+  (Git API status). F2: created and destroyed on 2026-11-28 (below).
+- [x] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no
+  cloud. Evidence: 2026-11-28 — `lint` and `test` green in CI run 46054769023 on `90a90c0`; CI has
+  no cloud credentials (the repository and both environments hold no secret).
 - [ ] **AC14 Cost** — Azure cost analysis ≤ $10 on day 0 and day 2 (step 17); resource listing empty
   after teardown (step 16); subscription cancelled; Microsoft 365 recurring billing off (steps 1.2,
   18). Evidence:
@@ -73,17 +90,25 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   cloud-run/load-sources.txt, counts equal the generated files.
 - [x] Fabric CU quota allows an F2 on this subscription. Evidence: 2026-11-24 — usages API: Sweden
   Central 4 CU, West Europe 0.
-- [ ] F2 apply → destroy within one sitting, assigned to no workspace, start and end times (step 14).
-  Evidence:
+- [x] F2 apply → destroy within one sitting, assigned to no workspace, start and end times (step 14).
+  Evidence: 2026-11-28 — created about 15:31 UTC, `2 added`; destroyed by 15:43 UTC, `2 destroyed`;
+  `az resource list` for Fabric capacities empty. Assigned to no workspace. cloud-run/f2-created.png,
+  cloud-run/f2-destroy.txt.
 - [ ] Whether the Azure free credit covered the F2 meter (step 17, credits page). Evidence:
 
 ### PLAN-U19 Deployment
 
-- [ ] OIDC client assertion accepted by Entra; no secret anywhere (step 6). Evidence:
-- [ ] `$items` lookup resolves Terraform items (`lh_bronze`, `lh_silver`, `wh_gold`, `eh_beds`) in
-  Test and Prod (step 6). Evidence:
-- [ ] Dataflow `df_sharepoint` deployed by the service principal (the docs conflict) (step 6).
-  Evidence:
+- [x] OIDC client assertion accepted by Entra; no secret anywhere (step 6). Evidence: 2026-11-28 — deploy
+  run https://github.com/AlexBormotov/fabric-clinic-chain-azure/actions/runs/46055987161, jobs `test` and `prod` green with `id-token: write` and only
+  `vars.*`; `gh secret list` is empty for the repository and the Test and Prod environments.
+- [x] `$items` lookup resolves Terraform items (`lh_bronze`, `lh_silver`, `wh_gold`, `eh_beds`) in
+  Test and Prod (step 6). Evidence: 2026-11-28 — deployed `pl_land_sources` definitions hold no zero
+  GUID; `artifactId` is each workspace's own `lh_bronze` (Test `a64f3456…`, Prod `ed9477f9…`); the
+  Prod model's OneLake source is Prod `wh_gold` (`c068aace…`); Test Gold and the live path ran on
+  the resolved `lh_silver`, `wh_gold` and `eh_beds` (AC2, AC4).
+- [x] Dataflow `df_sharepoint` deployed by the service principal (the docs conflict) (step 6).
+  Evidence: 2026-11-28 — run 46055987161 logs "Published Dataflow 'df_sharepoint'" in both jobs;
+  it then needs the owner's take-over and re-bind before it runs (runbook 6).
 - [x] Pipeline runs of items owned by the service principal succeed when the owner starts them
   (step 7.1). Evidence: 2026-11-27 — only after the owner re-saved the pipeline; otherwise `SPNBasedRefreshNotAllowed` (runbook 6).
 - [x] Dataflow SharePoint connection bound and destination set by hand; `make republish` works
@@ -128,13 +153,11 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   (step 7.2). Evidence: 2026-11-27 — `EXEC gold.reload` ran with the owner's token; dim_patient 15330 rows.
 - [x] `clinic.boston` sees only Boston; `readmission_30d_rate` per clinic equals
   `gold.metric_summary` (step 12). Evidence: 2026-11-27 — cloud-run/phi-rls.md, cloud-run/rls-clinic-boston.png: one row, boston 0.10190664036817883 = `gold.metric_summary`.
-- [ ] Redeploying the model keeps the `clinic` role member (step 12). Evidence: 2026-11-27 — no.
-  After the Test redeploy (run 46055987161) the owner's DAX still ran but `clinic.boston` failed
-  (AnalysisServicesErrorCode 3242524690); the role had no member. Re-adding
-  `clinic_chain_clinic_users` triggered a refresh that bound the model to the older
-  workspace-identity connection with the same OneLake path (`Premium_ASWL_Error`). Re-binding
-  `cn_sm_clinic_chain_one_lake` (`POST …/semanticModels/{id}/bindConnection`) restored both
-  results (cloud-run/phi-rls.md, cloud-run/rls-role-readded.png).
+- [x] Redeploying the model keeps the `clinic` role member (step 12). Evidence: 2026-11-28 — yes.
+  Test redeploy run 46153994863, then take-over and connection re-bind only: `clinic.boston` sees
+  one row, boston 0.10190664036817883, with no change to **Security**. A deploy resets the
+  connection binding instead; the 2026-11-27 failure was that, not a lost member
+  (cloud-run/phi-rls.md, 12.5).
 - [x] ADR 0005 experiment outcome, and the fixed identity used (step 7.3, 11). Evidence: 2026-11-27 — fallback observed (cloud-run/fallback.md). Fixed identity: OAuth 2.0 as the owner, SSO off (connection `cn_sm_clinic_chain_one_lake`), because the workspace has no workspace identity (`Premium_ASWL_Error`).
 
 ### PLAN-U10 Semantic model
@@ -143,5 +166,7 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 
 ### Data residency (ADR 0006)
 
-- [ ] Trial capacity, Blob, Azure SQL and F2 all in Sweden Central; home region recorded
-  (steps 1.3, 1.4, 4.2, 14). Evidence:
+- [x] Trial capacity, Blob, Azure SQL and F2 all in Sweden Central; home region recorded
+  (steps 1.3, 1.4, 4.2, 14). Evidence: 2026-11-28 — trial `FTL4` Sweden Central (Fabric capacities
+  API); storage account, SQL server and databases `swedencentral` (`az resource list`); F2 Sweden
+  Central (f2-created.png); home region Switzerland North (above).

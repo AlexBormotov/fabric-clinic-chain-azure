@@ -1,0 +1,27 @@
+F2 apply and destroy, runbook step 14, 2026-11-28 (owner's infra shell; transcribed from the
+terminal screenshots; subscription id masked).
+
+$ terraform apply -var enable_f2=true
+Plan: 2 to add, 0 to change, 0 to destroy.
+  + module.capacity[0].azurerm_resource_group.capacity  (rg-clinicchain3gise3-capacity, swedencentral)
+  + module.capacity[0].azurerm_fabric_capacity.f2       (clinicchain3gise3, sku F2/Fabric, swedencentral)
+module.capacity[0].azurerm_fabric_capacity.f2: Creation complete after 16s
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+f2_capacity_id = "/subscriptions/<masked>/resourceGroups/rg-clinicchain3gise3-capacity/providers/Microsoft.Fabric/capacities/clinicchain3gise3"
+Created about 15:31 UTC (terminal screenshot 16:31 local, UTC+1).
+
+Portal: clinicchain3gise3, Microsoft.Fabric/capacities, SKU F2, Sweden Central (f2-created.png).
+Change size page listed F2 at $277.40 per month (estimate). Assigned to no workspace.
+
+$ terraform apply -var enable_f2=false
+module.capacity[0].azurerm_fabric_capacity.f2: Destruction complete after 34s
+module.capacity[0].azurerm_resource_group.capacity: Destruction complete after 27s
+Apply complete! Resources: 0 added, 0 changed, 2 destroyed.
+
+$ az resource list --resource-type Microsoft.Fabric/capacities -o table
+(no rows; only an azure-cli SyntaxWarning)
+
+$ date -u
+Sat Nov 28 15:43:15 UTC 2026
+
+Lifetime: about 12 minutes (15:31 to before 15:43 UTC).
