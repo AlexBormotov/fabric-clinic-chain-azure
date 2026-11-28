@@ -20,12 +20,14 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   (screenshot kept off the public repository).
 - [x] **Budget alert** set at $5 (step 1.6). Evidence: 2026-11-25 — monthly $5 budget `5dollars` on
   the billing account, which covers the subscription (screenshot kept off the public repository).
-- [ ] **CI on `main`** green at the commit deployed (link to the run). Evidence:
+- [x] **CI on `main`** green at the commit deployed (link to the run). Evidence: 2026-11-28 — deploy run
+  46055987161 deployed `90a90c0`; CI run https://github.com/AlexBormotov/fabric-clinic-chain-azure/actions/runs/46054769023 on that commit: lint, test, synth,
+  stand, kql, secrets all green.
 
 ## Acceptance criteria (INT-001)
 
-- [ ] **AC1 Synthetic estate** — local seam: `make test-slow` / CI `synth` job on the deployed
-  commit. Evidence:
+- [x] **AC1 Synthetic estate** — local seam: `make test-slow` / CI `synth` job on the deployed
+  commit. Evidence: 2026-11-28 — `synth` green in CI run 46054769023 on `90a90c0`.
 - [x] **AC2 Batch path** — `pl_land_sources` run all green in Test (step 7.1); Silver
   reconciliation exported; Gold row counts equal the local `make gold` counts, every difference
   explained (step 7.2). Evidence: 2026-11-27 — `pl_land_sources` run `138960d8` Completed in 11 min after six fixes (#38, #39): owner re-save against `SPNBasedRefreshNotAllowed`, no dataflow parameters, notebooks chained against HTTP 430, `run_line_magic` install, retry 1, OpenTelemetry purge. cloud-run/gold-row-counts.csv (COUNT_BIG per table; fact_stay 6374, fact_bed_day 35120).
@@ -52,8 +54,9 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   `main`: the sync would delete the Terraform items); Actions deploy to Test and Prod green (step 6);
   one deployment pipeline promotion (step 6); Terraform apply output (step 4.2); F2 created and
   destroyed (step 14). Evidence:
-- [ ] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no
-  cloud. Evidence:
+- [x] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no
+  cloud. Evidence: 2026-11-28 — `lint` and `test` green in CI run 46054769023 on `90a90c0`; CI has
+  no cloud credentials (the repository and both environments hold no secret).
 - [ ] **AC14 Cost** — Azure cost analysis ≤ $10 on day 0 and day 2 (step 17); resource listing empty
   after teardown (step 16); subscription cancelled; Microsoft 365 recurring billing off (steps 1.2,
   18). Evidence:
@@ -79,11 +82,17 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 
 ### PLAN-U19 Deployment
 
-- [ ] OIDC client assertion accepted by Entra; no secret anywhere (step 6). Evidence:
-- [ ] `$items` lookup resolves Terraform items (`lh_bronze`, `lh_silver`, `wh_gold`, `eh_beds`) in
-  Test and Prod (step 6). Evidence:
-- [ ] Dataflow `df_sharepoint` deployed by the service principal (the docs conflict) (step 6).
-  Evidence:
+- [x] OIDC client assertion accepted by Entra; no secret anywhere (step 6). Evidence: 2026-11-28 — deploy
+  run https://github.com/AlexBormotov/fabric-clinic-chain-azure/actions/runs/46055987161, jobs `test` and `prod` green with `id-token: write` and only
+  `vars.*`; `gh secret list` is empty for the repository and the Test and Prod environments.
+- [x] `$items` lookup resolves Terraform items (`lh_bronze`, `lh_silver`, `wh_gold`, `eh_beds`) in
+  Test and Prod (step 6). Evidence: 2026-11-28 — deployed `pl_land_sources` definitions hold no zero
+  GUID; `artifactId` is each workspace's own `lh_bronze` (Test `a64f3456…`, Prod `ed9477f9…`); the
+  Prod model's OneLake source is Prod `wh_gold` (`c068aace…`); Test Gold and the live path ran on
+  the resolved `lh_silver`, `wh_gold` and `eh_beds` (AC2, AC4).
+- [x] Dataflow `df_sharepoint` deployed by the service principal (the docs conflict) (step 6).
+  Evidence: 2026-11-28 — run 46055987161 logs "Published Dataflow 'df_sharepoint'" in both jobs;
+  it then needs the owner's take-over and re-bind before it runs (runbook 6).
 - [x] Pipeline runs of items owned by the service principal succeed when the owner starts them
   (step 7.1). Evidence: 2026-11-27 — only after the owner re-saved the pipeline; otherwise `SPNBasedRefreshNotAllowed` (runbook 6).
 - [x] Dataflow SharePoint connection bound and destination set by hand; `make republish` works
