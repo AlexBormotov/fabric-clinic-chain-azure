@@ -48,8 +48,12 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   without PHI columns (CI `test_model_has_no_phi_columns`). Evidence: 2026-11-27 — cloud-run/phi-rls.md: masks and CLS denial for `analyst`, clear values for `phi.reader`, Boston-only report for `clinic.boston`. The OneLake Spark check (step 12.3) was not run: the test users have no workspace on a capacity.
 - [x] **AC10 Direct Lake fallback** — DirectQuery shown in Performance Analyzer, cause recorded
   (step 11). Evidence: 2026-11-27 — cloud-run/fallback.md, cloud-run/fallback-perf-analyzer.png: a SQL RLS policy made a Direct Lake on SQL probe model fall back to DirectQuery.
-- [ ] **AC11 Capacity behaviour** — smoothing and throttling observed in the Capacity Metrics app
-  (step 13). Evidence:
+- [x] **AC11 Capacity behaviour** — smoothing and throttling observed in the Capacity Metrics app
+  (step 13). Evidence: 2026-11-28 — cloud-run/capacity.md; capacity-health.png, capacity-compute.png,
+  capacity-throttling.png, capacity-timepoint.png. Trial FTL4. Smoothing: the 24-hour background
+  smoothing gives a flat line at about 75%, peak 76.51%. Throttling: P95 interactive delay
+  74.97%, below the 100% limit; 0 throttled, 0 rejected. Each idle `eh_beds` uses 107,400 CU·s per
+  day (EventHouse UpTime).
 - [ ] **AC12 Delivery** — Dev Git-synced (step 5.3; own branch `dev-workspace`, not
   `main`: the sync would delete the Terraform items); Actions deploy to Test and Prod green (step 6);
   one deployment pipeline promotion (step 6); Terraform apply output (step 4.2); F2 created and
