@@ -61,7 +61,7 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   notebook could not be deleted while `pl_land_sources` referenced it. Renaming it to
   `nb_quality_cicd` let the promotion create a paired `nb_quality`; the Test redeploy (run
   46153994863) then updated that item by name, re-pointed the pipeline and unpublished
-  `nb_quality_cicd`. Pending: Terraform apply output, F2.
+  `nb_quality_cicd`. Terraform apply: cloud-run/terraform-apply.txt. Pending: F2 (step 14).
 - [x] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no
   cloud. Evidence: 2026-11-28 — `lint` and `test` green in CI run 46054769023 on `90a90c0`; CI has
   no cloud credentials (the repository and both environments hold no secret).
