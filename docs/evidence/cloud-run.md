@@ -54,7 +54,7 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   smoothing gives a flat line at about 75%, peak 76.51%. Throttling: P95 interactive delay
   74.97%, below the 100% limit; 0 throttled, 0 rejected. Each idle `eh_beds` uses 107,400 CU·s per
   day (EventHouse UpTime).
-- [ ] **AC12 Delivery** — Dev Git-synced (step 5.3; own branch `dev-workspace`, not
+- [x] **AC12 Delivery** — Dev Git-synced (step 5.3; own branch `dev-workspace`, not
   `main`: the sync would delete the Terraform items); Actions deploy to Test and Prod green (step 6);
   one deployment pipeline promotion (step 6); Terraform apply output (step 4.2); F2 created and
   destroyed (step 14). Evidence: 2026-11-28 — Actions deploy to Test and Prod green (run
@@ -65,7 +65,9 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   notebook could not be deleted while `pl_land_sources` referenced it. Renaming it to
   `nb_quality_cicd` let the promotion create a paired `nb_quality`; the Test redeploy (run
   46153994863) then updated that item by name, re-pointed the pipeline and unpublished
-  `nb_quality_cicd`. Terraform apply: cloud-run/terraform-apply.txt. Pending: F2 (step 14).
+  `nb_quality_cicd`. Terraform apply: cloud-run/terraform-apply.txt. Dev Git sync: `clinic-chain-dev` connected to
+  branch `dev-workspace`, folder `/fabric-dev`, head `9386e68`, last sync 2026-11-26 17:13 UTC
+  (Git API status). F2: created and destroyed on 2026-11-28 (below).
 - [x] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no
   cloud. Evidence: 2026-11-28 — `lint` and `test` green in CI run 46054769023 on `90a90c0`; CI has
   no cloud credentials (the repository and both environments hold no secret).
@@ -88,8 +90,10 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   cloud-run/load-sources.txt, counts equal the generated files.
 - [x] Fabric CU quota allows an F2 on this subscription. Evidence: 2026-11-24 — usages API: Sweden
   Central 4 CU, West Europe 0.
-- [ ] F2 apply → destroy within one sitting, assigned to no workspace, start and end times (step 14).
-  Evidence:
+- [x] F2 apply → destroy within one sitting, assigned to no workspace, start and end times (step 14).
+  Evidence: 2026-11-28 — created about 15:31 UTC, `2 added`; destroyed by 15:43 UTC, `2 destroyed`;
+  `az resource list` for Fabric capacities empty. Assigned to no workspace. cloud-run/f2-created.png,
+  cloud-run/f2-destroy.txt.
 - [ ] Whether the Azure free credit covered the F2 meter (step 17, credits page). Evidence:
 
 ### PLAN-U19 Deployment
@@ -162,5 +166,7 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 
 ### Data residency (ADR 0006)
 
-- [ ] Trial capacity, Blob, Azure SQL and F2 all in Sweden Central; home region recorded
-  (steps 1.3, 1.4, 4.2, 14). Evidence:
+- [x] Trial capacity, Blob, Azure SQL and F2 all in Sweden Central; home region recorded
+  (steps 1.3, 1.4, 4.2, 14). Evidence: 2026-11-28 — trial `FTL4` Sweden Central (Fabric capacities
+  API); storage account, SQL server and databases `swedencentral` (`az resource list`); F2 Sweden
+  Central (f2-created.png); home region Switzerland North (above).
