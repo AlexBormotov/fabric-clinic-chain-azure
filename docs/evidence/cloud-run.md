@@ -53,7 +53,15 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
 - [ ] **AC12 Delivery** — Dev Git-synced (step 5.3; own branch `dev-workspace`, not
   `main`: the sync would delete the Terraform items); Actions deploy to Test and Prod green (step 6);
   one deployment pipeline promotion (step 6); Terraform apply output (step 4.2); F2 created and
-  destroyed (step 14). Evidence:
+  destroyed (step 14). Evidence: 2026-11-28 — Actions deploy to Test and Prod green (run
+  46055987161; OIDC, `$items` below). Promotion: `clinic-chain-promotion` Dev → Test of
+  `nb_quality`, deploy operation `740b4207…` Succeeded at 14:18 UTC
+  (cloud-run/deployment-pipeline-promotion.png). First it failed with `TargetArtifactNameConflict`:
+  a deployment pipeline does not pair items fabric-cicd created with the same name, and the Test
+  notebook could not be deleted while `pl_land_sources` referenced it. Renaming it to
+  `nb_quality_cicd` let the promotion create a paired `nb_quality`; the Test redeploy (run
+  46153994863) then updated that item by name, re-pointed the pipeline and unpublished
+  `nb_quality_cicd`. Pending: Terraform apply output, F2.
 - [x] **AC13 Local first** — CI `lint` and `test` green on the deployed commit; `make test` needs no
   cloud. Evidence: 2026-11-28 — `lint` and `test` green in CI run 46054769023 on `90a90c0`; CI has
   no cloud credentials (the repository and both environments hold no secret).
@@ -137,13 +145,11 @@ Format of a filled slot: `2026-11-0x — cloud-run/<file> — <one-line observat
   (step 7.2). Evidence: 2026-11-27 — `EXEC gold.reload` ran with the owner's token; dim_patient 15330 rows.
 - [x] `clinic.boston` sees only Boston; `readmission_30d_rate` per clinic equals
   `gold.metric_summary` (step 12). Evidence: 2026-11-27 — cloud-run/phi-rls.md, cloud-run/rls-clinic-boston.png: one row, boston 0.10190664036817883 = `gold.metric_summary`.
-- [ ] Redeploying the model keeps the `clinic` role member (step 12). Evidence: 2026-11-27 — no.
-  After the Test redeploy (run 46055987161) the owner's DAX still ran but `clinic.boston` failed
-  (AnalysisServicesErrorCode 3242524690); the role had no member. Re-adding
-  `clinic_chain_clinic_users` triggered a refresh that bound the model to the older
-  workspace-identity connection with the same OneLake path (`Premium_ASWL_Error`). Re-binding
-  `cn_sm_clinic_chain_one_lake` (`POST …/semanticModels/{id}/bindConnection`) restored both
-  results (cloud-run/phi-rls.md, cloud-run/rls-role-readded.png).
+- [x] Redeploying the model keeps the `clinic` role member (step 12). Evidence: 2026-11-28 — yes.
+  Test redeploy run 46153994863, then take-over and connection re-bind only: `clinic.boston` sees
+  one row, boston 0.10190664036817883, with no change to **Security**. A deploy resets the
+  connection binding instead; the 2026-11-27 failure was that, not a lost member
+  (cloud-run/phi-rls.md, 12.5).
 - [x] ADR 0005 experiment outcome, and the fixed identity used (step 7.3, 11). Evidence: 2026-11-27 — fallback observed (cloud-run/fallback.md). Fixed identity: OAuth 2.0 as the owner, SSO off (connection `cn_sm_clinic_chain_one_lake`), because the workspace has no workspace identity (`Premium_ASWL_Error`).
 
 ### PLAN-U10 Semantic model

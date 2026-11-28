@@ -373,10 +373,10 @@ tenant.
     deploy rejected the Reflex, use the recipe in README "Live bed map and alert", step 2.
   - `sm_clinic_chain`: the deployer owns it, so its connection settings are read-only. Take it over
     (**Settings** → **Take over**, or `POST …/datasets/{id}/Default.TakeOver` with your token), then
-    bind the cloud connection (step 7.3). Repeat after each deploy. A deploy also removes the
-    `clinic` role member: add `clinic_chain_clinic_users` again (**Security**). That save
-    refreshes the model and may bind any connection with the same OneLake path, so check the
-    binding afterwards; delete unused OneLake connections to avoid it.
+    bind the cloud connection (step 7.3). Repeat after each deploy: a deploy resets the
+    connection binding (workspace admins still read through SSO; every other user fails). The
+    `clinic` role member survives a deploy. A refresh may bind any connection with the same
+    OneLake path, so keep only one such connection.
 - **Expect:** both jobs green; Test and Prod hold every item of `fabric/`; the OIDC sign-in works
   without a secret; `$items` resolved the Terraform lakehouses (pipeline activities show
   `lh_bronze`, not a zero GUID).
@@ -386,7 +386,10 @@ tenant.
 - **Deployment pipeline comparison (AC12):** Fabric → Deployment pipelines →
   `clinic-chain` → Dev → **Deploy** selected item `nb_quality` to Test. Screenshot
   `deployment-pipeline-promotion.png`. Then re-run the deploy workflow with `target=Test` so Test is
-  back on Git content.
+  back on Git content. The pipeline does not pair items fabric-cicd created, so Test shows every
+  item as "Not in source" and the deploy fails with `TargetArtifactNameConflict`; the Test notebook
+  cannot be deleted while `pl_land_sources` references it. Rename it first (`nb_quality_cicd`): the
+  redeploy then takes over the promoted `nb_quality` by name and unpublishes the renamed one.
 
 ## 7. Pipelines and Gold
 
