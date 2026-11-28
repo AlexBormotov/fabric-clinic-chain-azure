@@ -1,0 +1,7 @@
+query,value
+adt_raw count,13519
+adt_event rows,13519
+adt_event distinct event_id,13125
+events.csv rows,13125
+first ingested_at,2026-11-27T15:56:52Z
+last ingested_at,2026-11-27T16:01:32Z

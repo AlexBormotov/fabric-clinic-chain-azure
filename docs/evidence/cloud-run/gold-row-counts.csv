@@ -1,0 +1,15 @@
+name,row_count
+dim_bed,48
+dim_clinic,3
+dim_date,730
+dim_diagnosis,376
+dim_patient,15330
+dim_payer,10
+dim_ward,9
+fact_bed_day,35120
+fact_claim,32722
+fact_ed_visit,11445
+fact_encounter,10371
+fact_lab_result,59083
+fact_stay,6374
+user_clinic,1
